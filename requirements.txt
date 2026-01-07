@@ -1,0 +1,18 @@
+# Discord Interface
+discord.py
+
+# RAG & AI Orchestration
+langchain-core
+langchain-community
+chromadb
+sentence-transformers
+
+# API & Data Handling
+requests
+python-dotenv
+
+# LLM Connectors (For Gemini/Google)
+langchain-google-genai
+
+# Infrastructure & Testing
+pytest
