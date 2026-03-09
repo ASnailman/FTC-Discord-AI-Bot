@@ -12,21 +12,19 @@ def process_team_data(data):
     if not data:
         return [], []
 
-    documents = [] 
-    metadatas = [] 
+    documents = [] # The text content for the AI
+    metadatas = [] # Searchable tags for ChromaDB
 
     team_num = data.get('number')
-    team_name = data.get('name')
+    team_name = data.get('name', 'Unknown Name')
+    team_id_string = f"Team {team_num} ({team_name})"
 
     # identity, location, sponsors
     loc = data.get('location', {}) or {}
-    sponsors = ", ".join(data.get('sponsors', [])) or "None listed"
     identity_text = (
-        f"FTC Team {team_num} is named '{team_name}'. "
-        f"Based in {clean_value(loc.get('city'))}, {clean_value(loc.get('state'))}, {clean_value(loc.get('country'))} "
-        f"at venue: {clean_value(loc.get('venue'))}. "
-        f"Rookie Year: {data.get('rookieYear')}. School: {data.get('schoolName', 'Unknown')}. "
-        f"Sponsors: {sponsors}. Website: {clean_value(data.get('website'))}."
+        f"FTC {team_id_string}. "
+        f"Based in {clean_value(loc.get('city'))}, {clean_value(loc.get('state'))}, {clean_value(loc.get('country'))}. "
+        f"Rookie Year: {data.get('rookieYear')}. School: {data.get('schoolName', 'Unknown')}."
     )
     documents.append(identity_text)
     metadatas.append({"type": "identity", "team": team_num})
@@ -35,43 +33,31 @@ def process_team_data(data):
     qs = data.get('quickStats')
     if qs:
         stats_text = (
-            f"Season summary for Team {team_num}: Total OPR {qs.get('tot', {}).get('value', 0):.1f} (Rank #{qs.get('tot', {}).get('rank', 'N/A')}) "
-            f"across {qs.get('count', 0)} recorded items. "
-            f"Auto OPR: {qs.get('auto', {}).get('value', 0):.1f} (Rank #{qs.get('auto', {}).get('rank', 'N/A')}), "
-            f"DC OPR: {qs.get('dc', {}).get('value', 0):.1f} (Rank #{qs.get('dc', {}).get('rank', 'N/A')}), "
-            f"EG OPR: {qs.get('eg', {}).get('value', 0):.1f} (Rank #{qs.get('eg', {}).get('rank', 'N/A')})."
+            f"Season summary for {team_id_string}: Total OPR {qs.get('tot', {}).get('value', 0):.1f} (Rank #{qs.get('tot', {}).get('rank', 'N/A')}). "
+            f"Auto OPR: {qs.get('auto', {}).get('value', 0):.1f}, DC OPR: {qs.get('dc', {}).get('value', 0):.1f}, EG OPR: {qs.get('eg', {}).get('value', 0):.1f}."
         )
         documents.append(stats_text)
         metadatas.append({"type": "stats", "team": team_num})
 
     # awards
-    for award in data.get('awards', []):
-        person = f" won by {award.get('personName')} " if award.get('personName') else " "
-        division = f" (Division: {award.get('divisionName')})" if award.get('divisionName') else ""
+    awards = data.get('awards', [])
+    for award in awards:
         award_text = (
-            f"Team {team_num}{person}won the {award.get('type')} award (Placement: {award.get('placement')}){division} "
+            f"{team_id_string} won the {award.get('type')} award (Placement: {award.get('placement')}) "
             f"at the {award.get('event', {}).get('name')} in the {award.get('season')} season."
         )
         documents.append(award_text)
-        metadatas.append({"type": "award", "team": team_num, "season": award.get('season'), "event": award.get('eventCode')})
+        metadatas.append({"type": "award", "team": team_num, "season": award.get('season')})
 
     # event performance and aggregated totals
     for event_entry in data.get('events', []):
         evt = event_entry.get('event') or {}
         stats = event_entry.get('stats')
         if stats:
-            # Flatten the 'tot' dictionary containing aggregate event scores
-            tot_stats = stats.get('tot', {})
-            tot_breakdown = ", ".join([f"{k}: {v}" for k, v in tot_stats.items() if isinstance(v, (int, float, str, bool))])
-            
             event_text = (
-                f"At {evt.get('name')} ({evt.get('code')}) during the {evt.get('start')} to {evt.get('end')} {evt.get('type')}, "
-                f"Team {team_num} ranked #{stats.get('rank')} with a record of {stats.get('wins')} wins, {stats.get('losses')} losses, "
-                f"and {stats.get('ties')} ties across {stats.get('qualMatchesPlayed')} qual matches. "
-                f"They earned {stats.get('rp')} RP. "
-                f"Event OPR Details - Total: {stats.get('opr', {}).get('totalPoints', 0):.1f}, "
-                f"Auto: {stats.get('opr', {}).get('autoPoints', 0):.1f}, DC: {stats.get('opr', {}).get('dcPoints', 0):.1f}. "
-                f"Aggregate Event Scoring Totals: {tot_breakdown}."
+                f"At {evt.get('name')} ({evt.get('code')}), {team_id_string} ranked #{stats.get('rank')} "
+                f"with a record of {stats.get('wins')}-{stats.get('losses')}-{stats.get('ties')}. "
+                f"Event OPR: {stats.get('opr', {}).get('totalPoints', 0):.1f}."
             )
             documents.append(event_text)
             metadatas.append({"type": "event_performance", "team": team_num, "event": evt.get('code')})
@@ -85,17 +71,11 @@ def process_team_data(data):
         scores = match_info.get('scores', {}).get(alliance_color, {})
         
         if scores:
-            breakdown = ", ".join([f"{k.replace('_', ' ')}: {v}" for k, v in scores.items() if isinstance(v, (int, float, str, bool))])
+            # Create a detailed breakdown string of all numeric/string scoring fields
+            breakdown = ", ".join([f"{k.replace('_', ' ')}: {v}" for k, v in scores.items() if isinstance(v, (int, float, str))])
             
-            meta_text = (
-                f"Station: {entry.get('station')}, Role: {entry.get('allianceRole')}, "
-                f"Tournament Level: {match_info.get('tournamentLevel')}, Surrogate: {entry.get('surrogate')}, "
-                f"DQ: {entry.get('dq')}, No Show: {entry.get('noShow')}."
-            )
-
             match_text = (
-                f"Match {match_info.get('description')} details for Team {team_num} (Alliance: {alliance_color.capitalize()}). "
-                f"Match Context: {meta_text} "
+                f"Match {match_info.get('description')} details for {team_id_string} (Alliance: {alliance_color.capitalize()}): "
                 f"Total Points: {scores.get('totalPoints')}. Scoring Breakdown: {breakdown}."
             )
             documents.append(match_text)

@@ -1,7 +1,7 @@
 import chromadb
 from chromadb.utils import embedding_functions
 from processor import process_team_data
-from data_retrieval import fetch_team_data
+from data_retrieval import fetch_team_data, CURRENT_FTC_SEASON, DEFAULT_REGION
 
 class VectorDBManager:
     def __init__(self, db_path="./chroma_db"):
@@ -14,11 +14,17 @@ class VectorDBManager:
             embedding_function=self.ef
         )
 
-    def is_team_in_db(self, team_num):
+    def is_team_in_db(self, team_num, season, region):
         """Checks if a team already has data in ChromaDB."""
         # We query the DB specifically filtering by the 'team' metadata tag
         results = self.collection.get(
-            where={"team": team_num}, 
+            where={
+                "$and": [
+                    {"team": team_num},
+                    {"season": season},
+                    {"region": region}
+                ]
+            }, 
             include=["metadatas"]
         )
         return len(results['ids']) > 0
@@ -43,14 +49,19 @@ class VectorDBManager:
         )
         return True
 
-    def get_or_load_team(self, team_num, fetch_function):
+    def get_or_load_team(self, team_num, fetch_function, season=None, region=None):
         """Fetches from DB if exists, otherwise hits API."""
-        if self.is_team_in_db(team_num):
-            print(f"Team {team_num} is in memory.")
+        if season is None:
+            season = CURRENT_FTC_SEASON
+        if region is None:
+            season = DEFAULT_REGION  
+
+        if self.is_team_in_db(team_num, season, region):
+            print(f"Team {team_num} (Season {season}) (Region {region}) is already in memory.")
             return True
         else:
-            print(f"Fetching Team {team_num} from FTCScout.")
-            raw_data = fetch_function(team_num)
+            print(f"Fetching Team {team_num} (Season {season}) (Region {region}) from API.")
+            raw_data = fetch_function(team_number=team_num, season=season, region=region)
             if raw_data:
                 self.upsert_team_data(raw_data)
                 return True

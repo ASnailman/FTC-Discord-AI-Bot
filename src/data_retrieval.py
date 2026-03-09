@@ -2,10 +2,17 @@ import requests
 import json
 
 API_URL = "https://api.ftcscout.org/graphql"
+CURRENT_FTC_SEASON = 2025
+DEFAULT_REGION = 'All'
 
-def fetch_team_data(team_number: int = 14469, season: int = 2025, region: str = "All", event_code: str = None):
+def fetch_team_data(team_number: int, season: int = None, region: str = None, event_code: str = None):
     # This query requests EVERY field defined in the schema for Team, Awards, QuickStats, Events, and Matches.
     # It explicitly expands all Fragments for seasons 2019-2025.
+    if season is None:
+        season = CURRENT_FTC_SEASON
+    if region is None:
+        season = DEFAULT_REGION  
+
     query = """
     query GetLiterallyEverything($number: Int!, $season: Int!, $region: RegionOption, $eventCode: String) {
       teamByNumber(number: $number) {
