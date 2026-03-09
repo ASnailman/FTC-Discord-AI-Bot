@@ -213,3 +213,4 @@ __marimo__/
 
 # my ignores
 chroma_db/
+output.json
