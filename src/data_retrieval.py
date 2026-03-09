@@ -3,15 +3,6 @@ import json
 
 API_URL = "https://api.ftcscout.org/graphql"
 
-# def safe_get(data, keys):
-#     """Safely retrieves nested keys from a dictionary."""
-#     for key in keys:
-#         if isinstance(data, dict):
-#             data = data.get(key)
-#         else:
-#             return "N/A"
-#     return data if data is not None else "N/A"
-
 def fetch_team_data(team_number: int = 14469, season: int = 2025, region: str = "All", event_code: str = None):
     # This query requests EVERY field defined in the schema for Team, Awards, QuickStats, Events, and Matches.
     # It explicitly expands all Fragments for seasons 2019-2025.
@@ -463,6 +454,17 @@ if __name__ == "__main__":
 
         with open("output.json", "w") as file:
             file.write(json.dumps(result, indent=2))
+
+        '''
+        # def safe_get(data, keys):
+        #     """Safely retrieves nested keys from a dictionary."""
+        #     for key in keys:
+        #         if isinstance(data, dict):
+        #             data = data.get(key)
+        #         else:
+        #             return "N/A"
+        #     return data if data is not None else "N/A"
+
         # print(result)
         # print("-----------\n")
 
@@ -509,6 +511,7 @@ if __name__ == "__main__":
         # print("EVENTS")
         # # events = result.get('events', [])
         # print("-----------\n")
-
+        '''
+    
     else:
         print("Failed to fetch data.")
