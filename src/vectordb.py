@@ -54,7 +54,7 @@ class VectorDBManager:
         if season is None:
             season = CURRENT_FTC_SEASON
         if region is None:
-            season = DEFAULT_REGION  
+            region = DEFAULT_REGION  
 
         if self.is_team_in_db(team_num, season, region):
             print(f"Team {team_num} (Season {season}) (Region {region}) is already in memory.")
@@ -67,21 +67,20 @@ class VectorDBManager:
                 return True
             return False
 
-    def nightly_update(self, fetch_function):
-        """Finds all teams currently in the DB and refreshes them. Called once a day."""
+    def get_all_tracked_teams(self):
+        """Returns a list of unique (team_number, season) tuples currently in ChromaDB."""
+        # Get all metadata tags from the database
+        results = self.collection.get(include=["metadatas"])
         
-        all_data = self.collection.get(include=["metadatas"])
-        unique_teams = set()
-        for meta in all_data['metadatas']:
-            if 'team' in meta:
-                unique_teams.add(meta['team'])
-        
-        print(f"Found {len(unique_teams)} teams to update.")
-        
-        for team_num in unique_teams:
-            raw_data = fetch_function(team_num)
-            if raw_data:
-                self.upsert_team_data(raw_data)
+        tracked = set()
+        for meta in results.get('metadatas', []):
+            if meta:
+                team = meta.get('team')
+                season = meta.get('season', 2025)
+                if team:
+                    tracked.add((team, season))
+                    
+        return list(tracked)
 
 if __name__ == "__main__":
     db = VectorDBManager()

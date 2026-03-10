@@ -1,5 +1,7 @@
 import requests
 import json
+from operator import itemgetter
+from collections import OrderedDict
 
 API_URL = "https://api.ftcscout.org/graphql"
 CURRENT_FTC_SEASON = 2025
@@ -11,7 +13,7 @@ def fetch_team_data(team_number: int, season: int = None, region: str = None, ev
     if season is None:
         season = CURRENT_FTC_SEASON
     if region is None:
-        season = DEFAULT_REGION  
+        region = DEFAULT_REGION  
 
     query = """
     query GetLiterallyEverything($number: Int!, $season: Int!, $region: RegionOption, $eventCode: String) {
@@ -451,74 +453,105 @@ def fetch_team_data(team_number: int, season: int = None, region: str = None, ev
         print(f"Connection Error: {e}")
         return None
 
+def fetch_teams():
+    query = """
+    query GetTeams {
+      teamsSearch(limit: 30000) {
+        number
+        name
+      }
+    }
+    """
+
+    response = requests.post(API_URL, json={"query": query}, timeout=15)
+
+    if response.status_code != 200:
+        print(f"API Error {response.status_code}: {response.text}")
+        return None
+
+    data = response.json()
+    
+    if "errors" in data:
+        print(f"Schema Error: {data['errors'][0]['message']}")
+        return None
+    
+    
+    # dictionary format: team_name : team_number
+    teams_list = data['data']['teamsSearch']
+    teams_dict = {}
+    for team in teams_list:
+        if team['name']:
+          team_name = team.get('name')
+          team_number = team.get('number')
+          teams_dict.update({team_name : team_number})
+
+    return teams_dict
+
+def fetch_teams_by_region(region: str = None):
+    if region is None:
+        region = DEFAULT_REGION 
+
+    query = """
+    query GetTeamsByRegion($region: RegionOption) {
+      teamsSearch(region: $region, limit: 30000) {
+        number
+        name
+      }
+    }
+    """
+
+    variables = {
+        "region": region
+    }
+
+    response = requests.post(API_URL, json={"query": query, "variables": variables}, timeout=15)
+
+    if response.status_code != 200:
+        print(f"API Error {response.status_code}: {response.text}")
+        return None
+
+    data = response.json()
+    
+    if "errors" in data:
+        print(f"Schema Error: {data['errors'][0]['message']}")
+        return None
+    
+    
+    # dictionary format: team_name : team_number
+    teams_list = data['data']['teamsSearch']
+    teams_dict = {}
+    for team in teams_list:
+        if team['name']:
+          team_name = team.get('name')
+          team_number = team.get('number')
+          teams_dict.update({team_name : team_number})
+
+    return sort_dict(teams_dict)
+
+def sort_dict(dict: dict):
+    sorted_pairs = sorted(dict.items(), key=itemgetter(1))
+    sorted_teams = OrderedDict(sorted_pairs)
+    return sorted_teams
+
 if __name__ == "__main__":
     TEAM_NUM = 14469
     YEAR = 2022
     REGION = "All" # can be any state Initial, UnitedStates, International, All, etc
 
-    result = fetch_team_data(TEAM_NUM, YEAR, REGION)
-    if result:
+    # result = fetch_team_data(TEAM_NUM, YEAR, REGION)
+    #     with open("output.json", "w") as file:
+    #         file.write(json.dumps(result, indent=2))
 
-        with open("output.json", "w") as file:
-            file.write(json.dumps(result, indent=2))
+    # team_dict = fetch_teams()
+    # sorted_team_dict = sort_dict(team_dict)
+    # if sorted_team_dict:
+    #     with open("output_names.json", "w") as file:
+    #         file.write(json.dumps(sorted_team_dict, indent=2))
 
-        '''
-        # def safe_get(data, keys):
-        #     """Safely retrieves nested keys from a dictionary."""
-        #     for key in keys:
-        #         if isinstance(data, dict):
-        #             data = data.get(key)
-        #         else:
-        #             return "N/A"
-        #     return data if data is not None else "N/A"
-
-        # print(result)
-        # print("-----------\n")
-
-        # print("TEAM INFO")
-        # print(f"Team: {result['name']} {result['number']}")
-        # print(f"School: {result['schoolName']}")
-        # print(f"Sponsors: {result['sponsors']}")
-        # print(f"Rookie Year: {result['rookieYear']}")
-        # print(f"Website: {result['website']}")
-        # print(f"Team: {result['name']}")
-        # print(f"Country: {safe_get(result, ['location', 'country'])}")
-        # print(f"State: {safe_get(result, ['location', 'state'])}")
-        # print(f"City: {safe_get(result, ['location', 'city'])}")
-        # print(f"Venue: {safe_get(result, ['location', 'venue'])}")
-        # print("-----------\n")
-        
-        # print("AWARDS")
-        # awards = result.get('awards', [])
-        # for award in awards:
-        #     print(f"Event: {safe_get(award, ['event'])}")
-        #     print(f"Event Code: {safe_get(award, ['eventCode'])}")
-        #     print(f"Division Name: {safe_get(award, ['divisionName'])}")
-        #     print(f"Person Name: {safe_get(award, ['personName'])}")
-        #     print(f"Placement: {safe_get(award, ['placement'])}")
-        #     print(f"Award Type: {safe_get(award, ['type'])}")
-        #     print("....")
-            
-        # print("-----------\n")
-        
-        # print("MATCHES")
-        # print("-----------\n")
-        
-        # print("QUICKSTATS")
-        # qstats = result.get('quickStats', {})
-        # for cat, stats in qstats.items():
-        #     if isinstance(stats, dict):
-        #         print(f"Category: {cat.upper()}")
-        #         print(f"Value: {safe_get(stats, ['value'])}")
-        #         print(f"Rank: {safe_get(stats, ['rank'])}")
-        #         print("....")
-        # print(f"Total Teams Scored: {qstats.get('count', 'N/A')}")
-        # print("-----------\n")
-        
-        # print("EVENTS")
-        # # events = result.get('events', [])
-        # print("-----------\n")
-        '''
+    team_dict_region = fetch_teams_by_region('UnitedStates')
+    if team_dict_region:
+        with open("output_names_region.json", "w") as file:
+            file.write(json.dumps(team_dict_region, indent=2))
     
     else:
         print("Failed to fetch data.")
