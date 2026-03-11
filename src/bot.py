@@ -14,7 +14,7 @@ vectordb = VectorDBManager()
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-# MY_GUILD = discord.Object(id=) # remove later
+MY_GUILD = discord.Object(id=694409795968434266) # remove later
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -25,11 +25,11 @@ class MyBot(commands.Bot):
 
     async def setup_hook(self):
         """This runs when the bot starts, before it connects."""
-        # self.tree.copy_global_to(guild=MY_GUILD) # remove this line when switching from testing to global
-        # await self.tree.sync(guild=MY_GUILD) # remove guild=MY_GUILD for same reasoning as above
-        # print(f"Synced slash commands to guild {MY_GUILD.id}")
-        synced = await self.tree.sync
-        print(f"Synced {synced} commands globally.")
+        self.tree.copy_global_to(guild=MY_GUILD) # remove this line when switching from testing to global
+        await self.tree.sync(guild=MY_GUILD) # remove guild=MY_GUILD for same reasoning as above
+        print(f"Synced slash commands to guild {MY_GUILD.id}")
+        # synced = await self.tree.sync()
+        # print(f"Synced {synced} commands globally.")
 
 bot = MyBot()
 
@@ -151,7 +151,7 @@ async def ask(interaction: discord.Interaction,
     
     try:
         answer = ask_bot(context_question)
-        await interaction.followup.send(f"Question: {question}\n\nAnswer: {answer}")
+        await interaction.followup.send(f"Question: {context_question}\n\nAnswer: {answer}")
     except Exception as e:
         await interaction.followup.send(f"An error occurred: {e}")
 

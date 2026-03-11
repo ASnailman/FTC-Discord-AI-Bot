@@ -70,7 +70,7 @@ def ask_bot(question: str):
     # but this is just to set up the blueprint
     llm = ChatGoogleGenerativeAI( 
         model="gemini-3.1-flash-lite-preview", 
-        temperature=0.8, 
+        temperature=0.65, 
         max_tokens=500
     )
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")    
@@ -86,8 +86,10 @@ def ask_bot(question: str):
         
         "Do not make up stats or scores. Keep your answer concise and friendly.\n\n"
         "Always include the team number, season, and region in the top of your response. "
-        "Ex: [Number: 14469, Season: Skystone 2020, Region: IL]"
-        "If no team number, season, or region is added, put None for that category specifically."
+        "Ex: [Season: Skystone 2020, Region: IL]"
+        "If referencing matches, don't just put M-#, put the tournament name next to it."
+        "Ex: Peoria Western League Tournament | Match-9"
+
         "Context:\n{context}"
     )
     prompt = ChatPromptTemplate.from_messages([
