@@ -1,0 +1,91 @@
+{
+  "n_cases": 23,
+  "exact_match_rate": 1.0,
+  "micro_precision": 1.0,
+  "micro_recall": 1.0,
+  "micro_f1": 1.0,
+  "per_tag": {
+    "numeric": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "possessive": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "multi": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "prefix": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "false_positive_trap": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "name": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "stopword": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "spacing": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "punctuation": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "spacing_union": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "case": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "collision": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "ngram_greedy": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "numeric_guard": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "region_independence": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "season_year": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "negative": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "numeric_and_name": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "context_signal": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "context_signal_guard": {
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "confusions": [],
+  "mode": "after"
+}

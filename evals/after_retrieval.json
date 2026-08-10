@@ -1,0 +1,76 @@
+{
+  "mode": "after",
+  "k": 40,
+  "n_cases": 7,
+  "team_precision_at_k": 1.0,
+  "season_precision_at_k": 1.0,
+  "context_purity_at_k": 1.0,
+  "facts_chunk_in_topk_rate": 1.0,
+  "avg_foreign_teams_in_context": 0.0,
+  "avg_wasted_context_chars": 0.0,
+  "per_case": {
+    "high_score_14469_2022": {
+      "team_precision": 1.0,
+      "season_precision": 1.0,
+      "context_purity": 1.0,
+      "n_foreign_teams": 0,
+      "wasted_context_chars": 0,
+      "facts_chunk_in_topk": true,
+      "n_retrieved": 40
+    },
+    "award_count_14469_2022": {
+      "team_precision": 1.0,
+      "season_precision": 1.0,
+      "context_purity": 1.0,
+      "n_foreign_teams": 0,
+      "wasted_context_chars": 0,
+      "facts_chunk_in_topk": true,
+      "n_retrieved": 40
+    },
+    "event_record_14469_2022": {
+      "team_precision": 1.0,
+      "season_precision": 1.0,
+      "context_purity": 1.0,
+      "n_foreign_teams": 0,
+      "wasted_context_chars": 0,
+      "facts_chunk_in_topk": true,
+      "n_retrieved": 40
+    },
+    "high_score_14469_2025": {
+      "team_precision": 1.0,
+      "season_precision": 1.0,
+      "context_purity": 1.0,
+      "n_foreign_teams": 0,
+      "wasted_context_chars": 0,
+      "facts_chunk_in_topk": true,
+      "n_retrieved": 40
+    },
+    "win_count_21333_2024": {
+      "team_precision": 1.0,
+      "season_precision": 1.0,
+      "context_purity": 1.0,
+      "n_foreign_teams": 0,
+      "wasted_context_chars": 0,
+      "facts_chunk_in_topk": true,
+      "n_retrieved": 40
+    },
+    "award_count_9295_2025": {
+      "team_precision": 1.0,
+      "season_precision": 1.0,
+      "context_purity": 1.0,
+      "n_foreign_teams": 0,
+      "wasted_context_chars": 0,
+      "facts_chunk_in_topk": true,
+      "n_retrieved": 15
+    },
+    "high_score_112_2022": {
+      "team_precision": 1.0,
+      "season_precision": 1.0,
+      "context_purity": 1.0,
+      "n_foreign_teams": 0,
+      "wasted_context_chars": 0,
+      "facts_chunk_in_topk": true,
+      "n_retrieved": 33
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "recorded_at": "2026-08-10T02:53:42.182999+00:00",
+  "api_url": "https://api.ftcscout.org/graphql",
+  "query": "GetLiterallyEverything"
+}

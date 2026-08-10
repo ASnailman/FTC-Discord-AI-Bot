@@ -1,0 +1,140 @@
+{
+  "mode": "before",
+  "n_cases": 7,
+  "runs_per_case": 2,
+  "required_facts_present_rate": 0.286,
+  "forbidden_facts_absent_rate": 1.0,
+  "truncation_rate": 0.143,
+  "error_rate": 0.0,
+  "answer_stability": 1.0,
+  "p50_latency_s": 0.79,
+  "p95_latency_s": 3.55,
+  "results": {
+    "high_score_14469_2022": [
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 249,
+        "latency_s": 3.55,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nI don't have that data for this question. The provided verified facts contain match data for Team 14469 (HOW) across several events, but none of the match records explicitly identify the season as \"Powerplay.\""
+      },
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 249,
+        "latency_s": 0.67,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nI don't have that data for this question. The provided verified facts contain match data for Team 14469 (HOW) across several events, but none of the match records explicitly identify the season as \"Powerplay.\""
+      }
+    ],
+    "award_count_14469_2022": [
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 371,
+        "latency_s": 0.79,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified facts provided, Team 14469 (HOW) has won the following awards during the 2022 season (the PowerPlay season):\n\n*   **Winner** (Placement: 2) at the Peoria Western League Tournament.\n*   **Motivate** (Placement: 2) at the Illinois State Championship.\n\nThis totals **2** awards for Team 14469 in the 2022 season."
+      },
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 371,
+        "latency_s": 0.71,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified facts provided, Team 14469 (HOW) has won the following awards during the 2022 season (the PowerPlay season):\n\n*   **Winner** (Placement: 2) at the Peoria Western League Tournament.\n*   **Motivate** (Placement: 2) at the Illinois State Championship.\n\nThis totals **2** awards for Team 14469 in the 2022 season."
+      }
+    ],
+    "event_record_14469_2022": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 177,
+        "latency_s": 0.6,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nIn the 2022 season (Powerplay), Team 14469 (HOW) competed at the Illinois State Championship, where they finished with a record of 4-1-0."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 177,
+        "latency_s": 0.57,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nIn the 2022 season (Powerplay), Team 14469 (HOW) competed at the Illinois State Championship, where they finished with a record of 4-1-0."
+      }
+    ],
+    "high_score_14469_2025": [
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": true,
+        "length": 586,
+        "latency_s": 0.92,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified match data provided, Team 14469 (HOW) achieved their highest match score in the recorded data during **Match M-1** at an unspecified event, where they scored **229 points**.\n\nThe scoring breakdown for that match was:\n*   **Auto Points:** 36\n*   **DC Points:** 168\n*   **Auto Scoring:** 2 Sample High (16 points), 2 Specimen High (20 points)\n*   **DC Scoring:** 10 Sample High (80 points), 7 Specimen High (70 points), and 18 Park Points (Ascent1 and Ascent2)\n*   **Penalties:** 1 minor committed (5 penalty points committed)"
+      },
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": true,
+        "length": 586,
+        "latency_s": 0.99,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified match data provided, Team 14469 (HOW) achieved their highest match score in the recorded data during **Match M-1** at an unspecified event, where they scored **229 points**.\n\nThe scoring breakdown for that match was:\n*   **Auto Points:** 36\n*   **DC Points:** 168\n*   **Auto Scoring:** 2 Sample High (16 points), 2 Specimen High (20 points)\n*   **DC Scoring:** 10 Sample High (80 points), 7 Specimen High (70 points), and 18 Park Points (Ascent1 and Ascent2)\n*   **Penalties:** 1 minor committed (5 penalty points committed)"
+      }
+    ],
+    "win_count_21333_2024": [
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 787,
+        "latency_s": 1.11,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified facts provided, there is no specific record of the total number of matches won by Team 21333 (RoboKnights) specifically for the \"Into the Deep\" season. \n\nThe available data for Team 21333 includes:\n*   **Suburban South League Tournament (2025 season):** Ranked #3 with a record of 4-1-0 and ranked #7 with a record of 3-2-0.\n*   **Michiana Premier Event Presented by GEARS - Jones Division:** Ranked #22 with a record of 5-5-0.\n*   **South Suburbs Meet 3:** Ranked #4 with a record of 3-2-0.\n\nWhile these records show match performance during the 2025 season, the data does not explicitly label these events as \"Into the Deep.\" I do not have the data to confirm which specific season corresponds to the \"Into the Deep\" theme."
+      },
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 787,
+        "latency_s": 1.12,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified facts provided, there is no specific record of the total number of matches won by Team 21333 (RoboKnights) specifically for the \"Into the Deep\" season. \n\nThe available data for Team 21333 includes:\n*   **Suburban South League Tournament (2025 season):** Ranked #3 with a record of 4-1-0 and ranked #7 with a record of 3-2-0.\n*   **Michiana Premier Event Presented by GEARS - Jones Division:** Ranked #22 with a record of 5-5-0.\n*   **South Suburbs Meet 3:** Ranked #4 with a record of 3-2-0.\n\nWhile these records show match performance during the 2025 season, the data does not explicitly label these events as \"Into the Deep.\" I do not have the data to confirm which specific season corresponds to the \"Into the Deep\" theme."
+      }
+    ],
+    "award_count_9295_2025": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 302,
+        "latency_s": 0.67,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nI do not have data regarding an event or season named \"Decode.\" Based on the verified facts provided, Team 9295 (Robo Knights) has won a total of 1 award across their recorded history: the Design award (Placement: 1) at the NY-NYC Qualifier 6 in the 2021 season."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 302,
+        "latency_s": 0.79,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nI do not have data regarding an event or season named \"Decode.\" Based on the verified facts provided, Team 9295 (Robo Knights) has won a total of 1 award across their recorded history: the Design award (Placement: 1) at the NY-NYC Qualifier 6 in the 2021 season."
+      }
+    ],
+    "high_score_112_2022": [
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 281,
+        "latency_s": 0.67,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified match data provided, Team 112 (RoboKnights Team 112) achieved their highest match score in the Powerplay season during the Atlanta League Tournament (USGAATLLT) in match **Q-36**, where they scored **108** total points."
+      },
+      {
+        "required_facts_present": false,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 281,
+        "latency_s": 0.64,
+        "answer": "[Season: Unknown Unknown, Region: All]\n\nBased on the verified match data provided, Team 112 (RoboKnights Team 112) achieved their highest match score in the Powerplay season during the Atlanta League Tournament (USGAATLLT) in match **Q-36**, where they scored **108** total points."
+      }
+    ]
+  }
+}

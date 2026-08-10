@@ -1,0 +1,17 @@
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "live: hits FTCScout GraphQL and/or the Gemini API; requires network + GOOGLE_API_KEY. Deselected by default.",
+    "slow: downloads or runs the real all-MiniLM-L6-v2 sentence-transformer model.",
+    "eval: scored quality benchmark rather than a pass/fail unit test.",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.coverage.run]
+source = ["src"]
