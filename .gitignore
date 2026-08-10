@@ -216,3 +216,5 @@ chroma_db/
 output.json
 output_names.json
 output_names_region.json
+src/data/
+chroma_backup_*.zip

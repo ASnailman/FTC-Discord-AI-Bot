@@ -1,0 +1,87 @@
+# Golden Q/A set. Every fact here is computed from the recorded fixture
+# payloads by src/stats.py (see scripts/eval_answers.py), not hand-typed --
+# ground truth can never drift from what the fixtures actually contain.
+#
+# `fixture` names the ftcscout fixture file used to seed the corpus for this
+# question. `expect_type` drives what "required chunks" means for the
+# retrieval eval (aggregation -> every match_granular chunk for team+season).
+
+- id: high_score_14469_2022
+  fixture: team_14469_2022.json
+  team: 14469
+  season: 2022
+  region: All
+  question: "What was 14469's highest match score in Powerplay?"
+  expect_type: aggregation
+  must_contain: ["306", "F-1"]
+  must_not_contain: ["2025", "Decode"]
+
+- id: award_count_14469_2022
+  fixture: team_14469_2022.json
+  team: 14469
+  season: 2022
+  region: All
+  question: "How many awards has 14469 won in Powerplay?"
+  expect_type: aggregation
+  must_contain: ["3"]
+  must_not_contain: []
+
+- id: event_record_14469_2022
+  fixture: team_14469_2022.json
+  team: 14469
+  season: 2022
+  region: All
+  question: "What was 14469's record at the Illinois State Championship in Powerplay?"
+  expect_type: event
+  must_contain: ["4-1-0"]
+  must_not_contain: []
+
+- id: high_score_14469_2025
+  fixture: team_14469_2025.json
+  team: 14469
+  season: 2025
+  region: All
+  question: "What was 14469's highest match score in Decode?"
+  expect_type: aggregation
+  must_contain: ["390"]
+  must_not_contain: ["2022", "Powerplay"]
+
+- id: win_count_21333_2024
+  fixture: team_21333_2024.json
+  team: 21333
+  season: 2024
+  region: All
+  question: "How many matches did 21333 win in Into the Deep?"
+  expect_type: aggregation
+  must_contain: ["19"]
+  must_not_contain: ["14469"]
+
+- id: award_count_9295_2025
+  fixture: team_9295_2025.json
+  team: 9295
+  season: 2025
+  region: All
+  question: "How many awards has 9295 won in Decode?"
+  expect_type: aggregation
+  must_contain: ["0"]
+  must_not_contain: []
+
+- id: high_score_112_2022
+  fixture: team_112_2022.json
+  team: 112
+  season: 2022
+  region: All
+  question: "What was team 112's highest match score in Powerplay?"
+  expect_type: aggregation
+  must_contain: ["165"]
+  must_not_contain: []
+
+- id: no_team_refusal
+  fixture: null
+  team: null
+  season: null
+  region: All
+  question: "What is the weather like today?"
+  expect_type: refusal
+  must_contain: []
+  must_not_contain: []

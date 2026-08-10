@@ -1,0 +1,76 @@
+{
+  "mode": "before",
+  "k": 40,
+  "n_cases": 7,
+  "team_precision_at_k": 0.593,
+  "season_precision_at_k": 0.379,
+  "context_purity_at_k": 0.257,
+  "facts_chunk_in_topk_rate": 0.0,
+  "avg_foreign_teams_in_context": 2.0,
+  "avg_wasted_context_chars": 13598.714,
+  "per_case": {
+    "high_score_14469_2022": {
+      "team_precision": 0.975,
+      "season_precision": 0.225,
+      "context_purity": 0.225,
+      "n_foreign_teams": 1,
+      "wasted_context_chars": 15481,
+      "facts_chunk_in_topk": false,
+      "n_retrieved": 40
+    },
+    "award_count_14469_2022": {
+      "team_precision": 0.625,
+      "season_precision": 0.125,
+      "context_purity": 0.075,
+      "n_foreign_teams": 3,
+      "wasted_context_chars": 16342,
+      "facts_chunk_in_topk": false,
+      "n_retrieved": 40
+    },
+    "event_record_14469_2022": {
+      "team_precision": 0.95,
+      "season_precision": 0.125,
+      "context_purity": 0.125,
+      "n_foreign_teams": 1,
+      "wasted_context_chars": 15603,
+      "facts_chunk_in_topk": false,
+      "n_retrieved": 40
+    },
+    "high_score_14469_2025": {
+      "team_precision": 0.95,
+      "season_precision": 0.75,
+      "context_purity": 0.725,
+      "n_foreign_teams": 2,
+      "wasted_context_chars": 4956,
+      "facts_chunk_in_topk": false,
+      "n_retrieved": 40
+    },
+    "win_count_21333_2024": {
+      "team_precision": 0.325,
+      "season_precision": 0.325,
+      "context_purity": 0.325,
+      "n_foreign_teams": 2,
+      "wasted_context_chars": 11028,
+      "facts_chunk_in_topk": false,
+      "n_retrieved": 40
+    },
+    "award_count_9295_2025": {
+      "team_precision": 0.05,
+      "season_precision": 0.625,
+      "context_purity": 0.05,
+      "n_foreign_teams": 3,
+      "wasted_context_chars": 17807,
+      "facts_chunk_in_topk": false,
+      "n_retrieved": 40
+    },
+    "high_score_112_2022": {
+      "team_precision": 0.275,
+      "season_precision": 0.475,
+      "context_purity": 0.275,
+      "n_foreign_teams": 2,
+      "wasted_context_chars": 13974,
+      "facts_chunk_in_topk": false,
+      "n_retrieved": 40
+    }
+  }
+}

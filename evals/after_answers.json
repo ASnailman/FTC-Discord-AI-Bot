@@ -1,0 +1,140 @@
+{
+  "mode": "after",
+  "n_cases": 7,
+  "runs_per_case": 2,
+  "required_facts_present_rate": 1.0,
+  "forbidden_facts_absent_rate": 1.0,
+  "truncation_rate": 0.0,
+  "error_rate": 0.0,
+  "answer_stability": 1.0,
+  "p50_latency_s": 0.72,
+  "p95_latency_s": 3.61,
+  "results": {
+    "high_score_14469_2022": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 211,
+        "latency_s": 3.61,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nTeam 14469 (HOW) achieved their highest match score of the 2022 Powerplay season during the **IL Peoria Western League Tournament | F-1**, where they scored **306 points**."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 211,
+        "latency_s": 0.76,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nTeam 14469 (HOW) achieved their highest match score of the 2022 Powerplay season during the **IL Peoria Western League Tournament | F-1**, where they scored **306 points**."
+      }
+    ],
+    "award_count_14469_2022": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 325,
+        "latency_s": 0.82,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nTeam 14469 (HOW) won a total of **3 awards** during the 2022 Powerplay season:\n\n*   **Winner (Placement 2)** at the IL Peoria Western League Tournament.\n*   **Motivate (Placement 2)** at the Illinois State Championship.\n*   **Finalist (Placement 1)** at the Illinois State Championship."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 325,
+        "latency_s": 0.82,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nTeam 14469 (HOW) won a total of **3 awards** during the 2022 Powerplay season:\n\n*   **Winner (Placement 2)** at the IL Peoria Western League Tournament.\n*   **Motivate (Placement 2)** at the Illinois State Championship.\n*   **Finalist (Placement 1)** at the Illinois State Championship."
+      }
+    ],
+    "event_record_14469_2022": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 114,
+        "latency_s": 0.49,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nAt the Illinois State Championship, Team 14469 (HOW) had a record of 4-1-0."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 114,
+        "latency_s": 0.72,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nAt the Illinois State Championship, Team 14469 (HOW) had a record of 4-1-0."
+      }
+    ],
+    "high_score_14469_2025": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 182,
+        "latency_s": 0.65,
+        "answer": "[Season: Decode 2025, Region: All]\n\nTeam 14469 (HOW) achieved their highest match score of 390 points in match Q-88 at the Michiana Premier Event Presented by GEARS - Jones Division."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 182,
+        "latency_s": 0.67,
+        "answer": "[Season: Decode 2025, Region: All]\n\nTeam 14469 (HOW) achieved their highest match score of 390 points in match Q-88 at the Michiana Premier Event Presented by GEARS - Jones Division."
+      }
+    ],
+    "win_count_21333_2024": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 201,
+        "latency_s": 0.78,
+        "answer": "[Season: Into the Deep 2024, Region: All]\n\nTeam 21333 (RoboKnights) played a total of 30 matches during the 2024 Into the Deep season, finishing with a record of 19-6-0. Therefore, they won 19 matches."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 225,
+        "latency_s": 0.84,
+        "answer": "[Season: Into the Deep 2024, Region: All]\n\nTeam 21333 (RoboKnights) played a total of 30 matches during the 2024 Into the Deep season, finishing with a record of 19-6-0. Based on these verified facts, the team won 19 matches."
+      }
+    ],
+    "award_count_9295_2025": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 103,
+        "latency_s": 0.55,
+        "answer": "[Season: Decode 2025, Region: All]\n\nTeam 9295 (Robo Knights) has won 0 awards during the Decode season."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 103,
+        "latency_s": 0.56,
+        "answer": "[Season: Decode 2025, Region: All]\n\nTeam 9295 (Robo Knights) has won 0 awards during the Decode season."
+      }
+    ],
+    "high_score_112_2022": [
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 208,
+        "latency_s": 0.64,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nTeam 112's (RoboKnights Team 112) highest match score during the Powerplay season was **165 points**, achieved in match **Q-45** at the **GA Atlanta League Tournament**."
+      },
+      {
+        "required_facts_present": true,
+        "forbidden_facts_absent": true,
+        "truncated": false,
+        "length": 208,
+        "latency_s": 0.64,
+        "answer": "[Season: Powerplay 2022, Region: All]\n\nTeam 112's (RoboKnights Team 112) highest match score during the Powerplay season was **165 points**, achieved in match **Q-45** at the **GA Atlanta League Tournament**."
+      }
+    ]
+  }
+}

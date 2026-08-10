@@ -1,0 +1,147 @@
+# Golden dataset for extract_info, checked against the real trimmed US index
+# in tests/fixtures/teams_index/USIL.json. Every `expect`/`forbid` number is a
+# real team verified to exist (or not exist) in that fixture.
+#
+# tags are used to break precision/recall down by failure category in
+# scripts/eval_extraction.py.
+- id: num_single
+  question: "What was 14469's highest score?"
+  expect: [14469]
+  forbid: []
+  tags: [numeric, possessive]
+
+- id: num_multi
+  question: "Compare 14469 and 21333"
+  expect: [14469, 21333]
+  forbid: []
+  tags: [numeric, multi]
+
+- id: num_hash
+  question: "how did team #9295 do"
+  expect: [9295]
+  forbid: [14469]
+  tags: [numeric, prefix]
+
+- id: fp_how_headline
+  question: "How many matches did 21333 win?"
+  expect: [21333]
+  forbid: [14469]
+  tags: [false_positive_trap]
+
+- id: fp_how_did
+  question: "How did Robo Knights do at states?"
+  expect: [9295, 16609]
+  forbid: [14469]
+  tags: [false_positive_trap, name]
+
+- id: fp_single_letter
+  question: "what does m do in auto"
+  expect: []
+  forbid: []
+  tags: [stopword]
+
+- id: name_exact
+  question: "tell me about Robo Knights"
+  expect: [9295, 16609]
+  forbid: [9930, 33862]
+  tags: [name, spacing]
+
+- id: name_hyphen_union
+  question: "tell me about Robo-Knights"
+  expect: [9295, 9930, 16609, 33862]
+  forbid: []
+  tags: [name, punctuation, spacing_union]
+
+- id: name_concat_union
+  question: "tell me about roboknights"
+  expect: [9295, 9930, 16609, 33862]
+  forbid: []
+  tags: [name, punctuation, spacing_union]
+
+- id: name_case
+  question: "TELL ME ABOUT ROBO KNIGHTS"
+  expect: [9295, 16609]
+  forbid: []
+  tags: [name, case]
+
+- id: collide_late_knights
+  question: "how good are the Late Knights"
+  expect: [4218, 9762]
+  forbid: [14469]
+  tags: [collision, false_positive_trap]
+
+- id: collide_titans
+  question: "compare the titans"
+  expect: [5158, 19055, 31895]
+  forbid: []
+  tags: [collision]
+
+- id: greedy_longest
+  question: "how did RoboKnights Team 112 do"
+  expect: [112]
+  forbid: [9295, 9930, 16609, 33862]
+  tags: [ngram_greedy]
+
+- id: numeric_guard_out_of_region
+  question: "how did 21333 do"
+  expect: [21333]
+  forbid: [14469]
+  tags: [numeric_guard, region_independence]
+
+- id: numeric_guard_season_context
+  question: "how did 21333 do in 2022"
+  expect: [21333]
+  forbid: []
+  tags: [numeric_guard, season_year]
+
+- id: numeric_guard_bare_small_number
+  question: "who are the top 5 teams"
+  expect: []
+  forbid: [1]
+  tags: [numeric_guard]
+
+- id: negative_no_team
+  question: "what season is Decode"
+  expect: []
+  forbid: []
+  tags: [negative]
+
+- id: negative_empty
+  question: ""
+  expect: []
+  forbid: []
+  tags: [negative]
+
+- id: multi_mixed
+  # "team HOW's" resolves via the context-signal override (preceded by
+  # "team") plus possessive-suffix stripping ("HOW's" -> "how" + "s" dropped)
+  # -- see signal_team_prefix and guard_allcaps_question below for the
+  # isolated cases.
+  question: "What is team HOW's chances of beating Late Knights and the Titans?"
+  expect: [4218, 5158, 9762, 14469, 19055, 31895]
+  forbid: []
+  tags: [multi, numeric_and_name]
+
+- id: signal_team_prefix
+  question: "How does team HOW compare to the top teams of the world?"
+  expect: [14469]
+  forbid: []
+  tags: [false_positive_trap, context_signal]
+
+- id: signal_allcaps
+  question: "How does HOW compare to the top teams?"
+  expect: [14469]
+  forbid: []
+  tags: [false_positive_trap, context_signal]
+
+- id: signal_team_era
+  question: "How good is team ERA"
+  expect: [12847]
+  forbid: []
+  tags: [context_signal]
+
+- id: guard_allcaps_question
+  question: "HOW MANY MATCHES DID 21333 WIN?"
+  expect: [21333]
+  forbid: [14469]
+  tags: [false_positive_trap, context_signal_guard]

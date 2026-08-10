@@ -1,0 +1,311 @@
+{
+  "n_cases": 23,
+  "exact_match_rate": 0.435,
+  "micro_precision": 0.75,
+  "micro_recall": 0.73,
+  "micro_f1": 0.74,
+  "per_tag": {
+    "numeric": {
+      "precision": 0.75,
+      "recall": 0.75
+    },
+    "possessive": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "multi": {
+      "precision": 1.0,
+      "recall": 0.75
+    },
+    "prefix": {
+      "precision": 0.5,
+      "recall": 1.0
+    },
+    "false_positive_trap": {
+      "precision": 0.6,
+      "recall": 0.75
+    },
+    "name": {
+      "precision": 0.909,
+      "recall": 0.714
+    },
+    "stopword": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "spacing": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "punctuation": {
+      "precision": 1.0,
+      "recall": 0.5
+    },
+    "spacing_union": {
+      "precision": 1.0,
+      "recall": 0.5
+    },
+    "case": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "collision": {
+      "precision": 0.833,
+      "recall": 1.0
+    },
+    "ngram_greedy": {
+      "precision": 0.5,
+      "recall": 1.0
+    },
+    "numeric_guard": {
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    "region_independence": {
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    "season_year": {
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    "negative": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "numeric_and_name": {
+      "precision": 1.0,
+      "recall": 0.833
+    },
+    "context_signal": {
+      "precision": 0.75,
+      "recall": 1.0
+    },
+    "context_signal_guard": {
+      "precision": 0.0,
+      "recall": 0.0
+    }
+  },
+  "confusions": [
+    {
+      "id": "num_multi",
+      "question": "Compare 14469 and 21333",
+      "expected": [
+        14469,
+        21333
+      ],
+      "got": [
+        14469
+      ],
+      "spurious": [],
+      "missed": [
+        21333
+      ]
+    },
+    {
+      "id": "num_hash",
+      "question": "how did team #9295 do",
+      "expected": [
+        9295
+      ],
+      "got": [
+        9295,
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": []
+    },
+    {
+      "id": "fp_how_headline",
+      "question": "How many matches did 21333 win?",
+      "expected": [
+        21333
+      ],
+      "got": [
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": [
+        21333
+      ]
+    },
+    {
+      "id": "fp_how_did",
+      "question": "How did Robo Knights do at states?",
+      "expected": [
+        9295,
+        16609
+      ],
+      "got": [
+        9295,
+        14469,
+        16609
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": []
+    },
+    {
+      "id": "name_hyphen_union",
+      "question": "tell me about Robo-Knights",
+      "expected": [
+        9295,
+        9930,
+        16609,
+        33862
+      ],
+      "got": [
+        9930,
+        33862
+      ],
+      "spurious": [],
+      "missed": [
+        9295,
+        16609
+      ]
+    },
+    {
+      "id": "name_concat_union",
+      "question": "tell me about roboknights",
+      "expected": [
+        9295,
+        9930,
+        16609,
+        33862
+      ],
+      "got": [
+        9930,
+        33862
+      ],
+      "spurious": [],
+      "missed": [
+        9295,
+        16609
+      ]
+    },
+    {
+      "id": "collide_late_knights",
+      "question": "how good are the Late Knights",
+      "expected": [
+        4218,
+        9762
+      ],
+      "got": [
+        4218,
+        9762,
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": []
+    },
+    {
+      "id": "greedy_longest",
+      "question": "how did RoboKnights Team 112 do",
+      "expected": [
+        112
+      ],
+      "got": [
+        112,
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": []
+    },
+    {
+      "id": "numeric_guard_out_of_region",
+      "question": "how did 21333 do",
+      "expected": [
+        21333
+      ],
+      "got": [
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": [
+        21333
+      ]
+    },
+    {
+      "id": "numeric_guard_season_context",
+      "question": "how did 21333 do in 2022",
+      "expected": [
+        21333
+      ],
+      "got": [
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": [
+        21333
+      ]
+    },
+    {
+      "id": "multi_mixed",
+      "question": "What is team HOW's chances of beating Late Knights and the Titans?",
+      "expected": [
+        4218,
+        5158,
+        9762,
+        14469,
+        19055,
+        31895
+      ],
+      "got": [
+        4218,
+        5158,
+        9762,
+        19055,
+        31895
+      ],
+      "spurious": [],
+      "missed": [
+        14469
+      ]
+    },
+    {
+      "id": "signal_team_era",
+      "question": "How good is team ERA",
+      "expected": [
+        12847
+      ],
+      "got": [
+        12847,
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": []
+    },
+    {
+      "id": "guard_allcaps_question",
+      "question": "HOW MANY MATCHES DID 21333 WIN?",
+      "expected": [
+        21333
+      ],
+      "got": [
+        14469
+      ],
+      "spurious": [
+        14469
+      ],
+      "missed": [
+        21333
+      ]
+    }
+  ],
+  "mode": "before"
+}

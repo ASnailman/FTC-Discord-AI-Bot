@@ -1,112 +1,128 @@
-import re
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI # langchain wrapper for gemini
-from langchain_huggingface import HuggingFaceEmbeddings # loads sentence transformer models from huggingface
-from langchain_chroma import Chroma # langchain support for chromadb
-from langchain_core.prompts import ChatPromptTemplate # creates structured prompts
-from langchain_classic.chains import create_retrieval_chain # builds a rag chain, combines retriever (chroma) and LLM
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain # creates chain that combines documents to be sent to LLM
-from data_retrieval import fetch_teams_by_region
-load_dotenv() 
+"""Retrieval + generation: turns a scouting question into a Gemini answer.
 
-STOP_WORDS = {"chances", "beating", "vs", "versus", 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'}
+Two fixes from the original implementation, both required together (see
+docs/retrieval.md for the full rationale):
 
-def extract_info(question: str, region_teams_dict: dict):
-    teams_mentioned = set()
+1. Retrieval is now filtered by the team numbers and season the question was
+   asked about (`_build_where`), instead of a global top-k search across
+   every team and season ever cached. Filtering requires every chunk to
+   carry accurate team/season metadata, which `processor.py`'s schema v2
+   now guarantees -- shipping the filter without that would have made
+   retrieval find *nothing* instead of the wrong thing.
+2. Aggregate questions ("highest score", "how many wins") are answered from
+   a deterministic VERIFIED FACTS block (`stats.py`), computed in Python and
+   force-included in the prompt, rather than trusting the LLM to do
+   arithmetic correctly over a similarity-ranked sample of chunks.
 
-    # Check for team numbers first
-    valid_numbers = set(str(v) for v in region_teams_dict.values())
-    found_numbers = re.findall(r'\b\d+\b', question)
-    for num in found_numbers:
-        if num in valid_numbers:
-            teams_mentioned.add(int(num))
+`team_nums=None` reproduces the original unfiltered behavior exactly (used
+by `scripts/eval_retrieval.py --mode before` to measure the pre-fix
+baseline against the same code path).
+"""
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_classic.chains import create_retrieval_chain
+from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 
-    # dict for the region (O(1) lookups)
-    clean_names_dict = {}
-    for raw_name, number in region_teams_dict.items():
-        # Remove in-name punctuation for consistency
-        clean_name = re.sub(r"['\-\._]", "", raw_name.lower())
-        words = re.findall(r'\b[a-z0-9]+\b', clean_name)
-        if words:
-            joined_name = " ".join(words)
-            
-            # for very specific edge cases where two names are the same (ex: RoboKnights and Robo-Knights, bro why)
-            if joined_name not in clean_names_dict:
-                clean_names_dict[joined_name] = [int(number)]
-            else:
-                clean_names_dict[joined_name].append(int(number))
+import config
+from clients import get_llm, get_vector_store
+from extraction import extract_info, extract_team_numbers  # noqa: F401  (re-exported)
+from seasons import season_name
 
-    # remove punctuation from question for consistency
-    clean_q = re.sub(r"['\-\._]", "", question.lower())
-    q_words = re.findall(r'\b[a-z0-9]+\b', clean_q)
+SYSTEM_PROMPT = (
+    "You are an expert FTC (FIRST Tech Challenge) scouting assistant.\n\n"
+    "Scope of this answer:\n"
+    "- Team(s): {teams}\n"
+    "- Season: {season_name} ({season})\n"
+    "- Region filter: {region}\n\n"
+    "Rules:\n"
+    "1. Begin your reply with exactly: [Season: {season_name} {season}, Region: {region}]\n"
+    "2. Every specific number, rank, award, and match code you state must come from the "
+    "VERIFIED FACTS or CONTEXT below -- never invent one. The VERIFIED FACTS block is "
+    "authoritative and already computed; if it answers the question, use its numbers "
+    "verbatim rather than recomputing them yourself.\n"
+    "3. When citing a match, give the event name and match code together, "
+    "e.g. \"Illinois State Championship | Q-7\".\n"
+    "4. For hypothetical, comparative, or strategic questions (e.g. \"who would make a good "
+    "alliance partner\", \"how would they do against...\"), reason about it and give a real "
+    "recommendation using the numbers above as support -- don't refuse just because the "
+    "question isn't a direct lookup.\n"
+    "5. If the question isn't about FTC teams/events, or no specific team could be "
+    "identified, say so briefly (e.g. \"I don't have that data for this question.\") "
+    "instead of answering.\n"
+    "6. Use whatever format communicates the answer best -- bullet points, bold text, and "
+    "multiple paragraphs are all fine. Be thorough rather than terse.\n\n"
+    "VERIFIED FACTS:\n{facts}\n\n"
+    "CONTEXT:\n{context}"
+)
 
-    used_indices = set()
-    max_ngram_length = 5
 
-    for n in range(max_ngram_length, 0, -1):
-        for i in range(len(q_words) - n + 1):
-            
-            # Skip if any word in this chunk is already claimed by a longer team name
-            if any(idx in used_indices for idx in range(i, i + n)):
-                continue
-                
-            ngram = " ".join(q_words[i:i+n])
-            
-            # Check if phrase is in the team dict and not a stop word
-            if ngram in clean_names_dict and ngram not in STOP_WORDS:
-                for team_num in clean_names_dict[ngram]:
-                    teams_mentioned.add(team_num)
-                
-                # lock these words so they can't trigger similar words
-                for idx in range(i, i + n):
-                    used_indices.add(idx)
+def _build_where(team_nums, season):
+    """Chroma requires $and/$or to wrap at least two operands."""
+    clauses = []
+    if team_nums:
+        nums = [int(t) for t in team_nums]
+        clauses.append({"team": {"$in": nums}} if len(nums) > 1 else {"team": nums[0]})
+    if season is not None:
+        clauses.append({"season": int(season)})
+    if not clauses:
+        return None
+    return clauses[0] if len(clauses) == 1 else {"$and": clauses}
 
-    return list(teams_mentioned)
 
-def ask_bot(question: str):
-    """Takes a user question, searches ChromaDB, and asks Gemini for the answer."""
-    
-    # langchain uses declarative programming, so logic might seem backwards
-    # but this is just to set up the blueprint
-    llm = ChatGoogleGenerativeAI( 
-        model="gemini-3.1-flash-lite-preview", 
-        temperature=0.65, 
-        max_tokens=500
-    )
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")    
-    vector_store = Chroma(
-        collection_name="ftc_team_data",
-        persist_directory="./chroma_db",
-        embedding_function=embeddings
-    )
-    retriever = vector_store.as_retriever(search_kwargs={"k": 40}) # take top most relevant chunks
-    system_prompt = (
-        "You are an expert FIRST Tech Challenge (FTC) scouting assistant. "
-        "Use the following retrieved context to answer the user's question. "
-        
-        "Do not make up stats or scores. Keep your answer concise and friendly.\n\n"
-        "Always include the team number, season, and region in the top of your response. "
-        "Ex: [Season: Skystone 2020, Region: IL]"
-        "If referencing matches, don't just put M-#, put the tournament name next to it."
-        "Ex: Peoria Western League Tournament | Match-9"
+def _facts_block(vector_store, team_nums, season) -> str:
+    """Force-include the precomputed facts chunk for every asked team, so
+    aggregate answers never depend on winning similarity ranking."""
+    if not team_nums or season is None:
+        return "No verified facts available (no specific team/season identified)."
+    ids = [f"{t}|{season}|facts" for t in team_nums]
+    result = vector_store.get(ids=ids, include=["documents"])
+    docs = result.get("documents") or []
+    if not docs:
+        return "No verified facts available for the requested team(s)/season."
+    return "\n\n".join(docs)
 
-        "Context:\n{context}"
-    )
+
+def ask_bot(question: str, team_nums=None, season=None, region=None, k=None) -> str:
+    """Answer a scouting question.
+
+    `team_nums`/`season` scope retrieval to the asked team(s)/season via a
+    Chroma metadata filter. Passing `team_nums=None` disables filtering
+    entirely (the original, unfiltered behavior) -- callers should always
+    pass real values; the unfiltered path exists for the before/after eval.
+    """
+    llm = get_llm()
+    vector_store = get_vector_store()
+
+    where = _build_where(team_nums, season)
+    # Scale k with team count so a multi-team question doesn't starve later
+    # teams of retrieval budget -- each team's own facts block is always
+    # force-included regardless, but broader context still benefits from it.
+    default_k = config.RETRIEVAL_K * max(1, len(team_nums or []))
+    search_kwargs = {"k": k or min(120, default_k)}
+    if where:
+        search_kwargs["filter"] = where
+    retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
+
     prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
+        ("system", SYSTEM_PROMPT),
         ("human", "{input}"),
-    ])
+    ]).partial(
+        teams=", ".join(str(t) for t in team_nums) if team_nums else "Unknown",
+        season=season if season is not None else "Unknown",
+        season_name=season_name(season) if season is not None else "Unknown",
+        region=region or "Unknown",
+        facts=_facts_block(vector_store, team_nums, season),
+    )
+
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
     rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
     response = rag_chain.invoke({"input": question})
     return response["answer"]
 
-if __name__ == "__main__":
-    # test_question = "What is team 14469's highest score in Powerplay season?"
-    # answer = ask_bot(test_question)
-    # print(f"\n{answer}")
 
-    test_multi_team_question = "What is team How chances of beating technophobia, meta infinity, and roboknights?"
-    answer = extract_info(test_multi_team_question, fetch_teams_by_region('USIL'))
-    print(f"\n{answer}")
+if __name__ == "__main__":
+    from data_retrieval import fetch_teams_by_region
+
+    test_question = "What is team HOW's chances of beating Technophobia, Meta Infinity, and RoboKnights?"
+    region_dict = fetch_teams_by_region("USIL")
+    print(extract_team_numbers(test_question, region_dict))

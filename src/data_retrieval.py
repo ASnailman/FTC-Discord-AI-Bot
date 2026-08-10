@@ -1,10 +1,14 @@
 import requests
 import json
+import time
 from operator import itemgetter
 from collections import OrderedDict
 
+import config
+from seasons import CURRENT_SEASON
+
 API_URL = "https://api.ftcscout.org/graphql"
-CURRENT_FTC_SEASON = 2025
+CURRENT_FTC_SEASON = CURRENT_SEASON  # kept for backward compatibility; seasons.py is the source of truth
 DEFAULT_REGION = 'All'
 
 def fetch_team_data(team_number: int, season: int = None, region: str = None, event_code: str = None):
@@ -527,6 +531,35 @@ def fetch_teams_by_region(region: str = None):
           teams_dict.update({team_name : team_number})
 
     return sort_dict(teams_dict)
+
+
+def get_cached_teams_by_region(region: str = None):
+    """`fetch_teams_by_region`, but persisted to disk with a TTL so `/ask`
+    doesn't download the entire (up to ~19,000-team) region index on every
+    invocation. Falls back to a stale cache file if the API is unreachable."""
+    region = region or DEFAULT_REGION
+    config.TEAMS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
+    cache_path = config.TEAMS_INDEX_DIR / f"teams_index_{region}.json"
+
+    if cache_path.exists():
+        age_days = (time.time() - cache_path.stat().st_mtime) / 86400
+        if age_days <= config.TEAMS_INDEX_TTL_DAYS:
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
+
+    teams = fetch_teams_by_region(region)
+    if teams:
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(teams, f)
+        return teams
+
+    if cache_path.exists():
+        print(f"Using stale cached team index for region '{region}' (API unreachable).")
+        with open(cache_path, encoding="utf-8") as f:
+            return json.load(f)
+
+    return None
+
 
 def sort_dict(dict: dict):
     sorted_pairs = sorted(dict.items(), key=itemgetter(1))
