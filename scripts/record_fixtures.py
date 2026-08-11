@@ -5,6 +5,7 @@ it by hand whenever a fixture needs to be added or refreshed:
 
     python scripts/record_fixtures.py --team 14469 --season 2022 --region All
     python scripts/record_fixtures.py --index --region UnitedStates --must-include 14469,9295
+    python scripts/record_fixtures.py --chief-delphi "14469 FTC"
 
 Writes deterministic JSON (sorted keys) so re-recording produces a small,
 reviewable diff, plus a sibling `.meta.json` with provenance (when it was
@@ -12,6 +13,7 @@ recorded and from which query) so a future schema drift is attributable.
 """
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -57,8 +59,6 @@ def record_index(region: str, limit: int, must_include: list[int], out_name: str
 
     # keep every colliding name (>1 team sharing a normalized key) and every
     # short single-token name, since those are exactly the extract_info traps
-    import re
-
     def norm(n: str) -> str:
         return " ".join(re.findall(r"[a-z0-9]+", re.sub(r"['\-\._]", "", n.lower())))
 
@@ -91,6 +91,16 @@ def record_index(region: str, limit: int, must_include: list[int], out_name: str
         print(f"WARNING: must-include teams not found in region {region}: {missing}", file=sys.stderr)
 
 
+def record_chief_delphi(term: str, name: str | None):
+    from tools import discourse
+
+    results = discourse.search(term, limit=10)
+    if not results:
+        print(f"WARNING: discourse.search({term!r}) returned no posts", file=sys.stderr)
+    fname = name or f"{re.sub(r'[^a-z0-9]+', '_', term.lower()).strip('_')}.json"
+    _write(FIXTURES_DIR / "chiefdelphi" / fname, results, "chiefdelphi_search")
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--team", type=int)
@@ -100,14 +110,17 @@ def main():
     p.add_argument("--index", action="store_true", help="record a team-name index instead")
     p.add_argument("--limit", type=int, default=400)
     p.add_argument("--must-include", default="", help="comma-separated team numbers to force-keep")
+    p.add_argument("--chief-delphi", metavar="TERM", help="record a Chief Delphi search result instead")
     args = p.parse_args()
 
-    if args.index:
+    if args.chief_delphi:
+        record_chief_delphi(args.chief_delphi, args.name)
+    elif args.index:
         must = [int(x) for x in args.must_include.split(",") if x.strip()]
         record_index(args.region, args.limit, must, args.name)
     else:
         if args.team is None or args.season is None:
-            p.error("--team and --season are required unless --index is given")
+            p.error("--team and --season are required unless --index/--chief-delphi is given")
         record_team(args.team, args.season, args.region, args.name)
 
 

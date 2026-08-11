@@ -75,3 +75,7 @@ To rebuild after a schema change:
 ```bash
 python scripts/reindex.py --wipe --teams 14469,21333,... --seasons 2022,2024,2025
 ```
+
+## External community content is not chunked
+
+Chief Delphi posts, Reddit posts, and YouTube transcripts (see [nodes.md](nodes.md)) are fetched per-request and held only in a short-lived, in-process `tools.cache.TTLCache` -- they are never written to ChromaDB as chunks. Persisting them would need to satisfy the same schema-versioning and delete-before-add invariants above, and community text goes stale in a way FTCScout data does not; see [adr/0003](adr/0003-multi-source-retrieval-pipeline.md) for the full reasoning.

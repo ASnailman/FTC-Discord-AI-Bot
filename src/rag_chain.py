@@ -17,6 +17,12 @@ docs/retrieval.md for the full rationale):
 `team_nums=None` reproduces the original unfiltered behavior exactly (used
 by `scripts/eval_retrieval.py --mode before` to measure the pre-fix
 baseline against the same code path).
+
+`ask_bot` is also the fallback path for `chain.answer` (the multi-source
+pipeline in chain.py): whenever no external source has anything to add to a
+question, `chain.answer` calls this function completely unchanged, so the
+prompt sent to Gemini is byte-for-byte what it always was -- see
+tests/unit/test_prompt_compat.py.
 """
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains import create_retrieval_chain
@@ -25,6 +31,8 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 import config
 from clients import get_llm, get_vector_store
 from extraction import extract_info, extract_team_numbers  # noqa: F401  (re-exported)
+from nodes.chroma_node import build_where as _build_where  # noqa: F401  (re-exported; see nodes/chroma_node.py)
+from nodes.stats_node import facts_block as _facts_block  # noqa: F401  (re-exported; see nodes/stats_node.py)
 from seasons import season_name
 
 SYSTEM_PROMPT = (
@@ -53,32 +61,6 @@ SYSTEM_PROMPT = (
     "VERIFIED FACTS:\n{facts}\n\n"
     "CONTEXT:\n{context}"
 )
-
-
-def _build_where(team_nums, season):
-    """Chroma requires $and/$or to wrap at least two operands."""
-    clauses = []
-    if team_nums:
-        nums = [int(t) for t in team_nums]
-        clauses.append({"team": {"$in": nums}} if len(nums) > 1 else {"team": nums[0]})
-    if season is not None:
-        clauses.append({"season": int(season)})
-    if not clauses:
-        return None
-    return clauses[0] if len(clauses) == 1 else {"$and": clauses}
-
-
-def _facts_block(vector_store, team_nums, season) -> str:
-    """Force-include the precomputed facts chunk for every asked team, so
-    aggregate answers never depend on winning similarity ranking."""
-    if not team_nums or season is None:
-        return "No verified facts available (no specific team/season identified)."
-    ids = [f"{t}|{season}|facts" for t in team_nums]
-    result = vector_store.get(ids=ids, include=["documents"])
-    docs = result.get("documents") or []
-    if not docs:
-        return "No verified facts available for the requested team(s)/season."
-    return "\n\n".join(docs)
 
 
 def ask_bot(question: str, team_nums=None, season=None, region=None, k=None) -> str:

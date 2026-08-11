@@ -30,6 +30,37 @@ jobs:
       - name: Run offline test suite
         run: pytest -m "not live and not slow" --cov=src --cov-report=term-missing -v
 
+      - name: Run router eval
+        run: python scripts/eval_router.py --report evals/ci_router.json
+
+  external-eval:
+    # Hits Chief Delphi and YouTube (no key needed) plus Reddit if configured.
+    # Manual trigger only -- third-party community APIs, not under our control.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run external-source tests
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        run: pytest -m external -v
+
   live-eval:
     # Hits the real FTCScout API and Gemini. Manual trigger only, consumes API quota.
     runs-on: ubuntu-latest

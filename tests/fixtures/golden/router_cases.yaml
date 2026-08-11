@@ -1,0 +1,71 @@
+# Golden dataset for nodes.router.route -- rules-only pass (LLM fallback is
+# not exercised here since it needs a live Gemini call; see
+# tests/live/test_answers_live.py for that tier).
+#
+# `expect_sources` is the exact frozenset nodes.router.route must return in
+# `.sources` for this question, given ENABLE_LLM_ROUTER has no bearing here
+# (every case below is decided by a rule, `method == "rules"`).
+- id: stats_lookup_highest_score
+  question: "What was 14469's highest score in Powerplay?"
+  expect_sources: [stats, chroma]
+  tags: [stats_lookup]
+
+- id: stats_lookup_how_many_wins
+  question: "How many matches did 21333 win?"
+  expect_sources: [stats, chroma]
+  tags: [stats_lookup]
+
+- id: strategy_drivetrain
+  question: "What drivetrain does Technophobia use?"
+  expect_sources: [stats, chroma, youtube, chief_delphi]
+  tags: [strategy]
+
+- id: strategy_auto_path
+  question: "What's team 14469's auto path strategy?"
+  expect_sources: [stats, chroma, youtube, chief_delphi]
+  tags: [strategy]
+
+- id: strategy_robot_reveal
+  question: "Has 9295 posted a robot reveal video?"
+  expect_sources: [stats, chroma, youtube, chief_delphi]
+  tags: [strategy]
+
+- id: reputation_known_for
+  question: "What is team 14469 known for in the FTC community?"
+  expect_sources: [stats, chroma, chief_delphi, reddit]
+  tags: [reputation]
+
+- id: reputation_notable
+  question: "Is 21333 a notable team at worlds?"
+  expect_sources: [stats, chroma, chief_delphi, reddit]
+  tags: [reputation]
+
+- id: comparison_versus
+  question: "14469 versus 9295, who wins?"
+  expect_sources: [stats, chroma, reddit]
+  tags: [comparison]
+
+- id: comparison_more_likely
+  question: "Who is more likely to win between team 14469 and The Golden Ratio?"
+  expect_sources: [stats, chroma, reddit]
+  tags: [comparison]
+
+- id: comparison_alliance_partner
+  question: "Would 14469 make a good alliance partner for 9295?"
+  expect_sources: [stats, chroma, reddit]
+  tags: [comparison]
+
+- id: multi_intent_strategy_and_comparison
+  question: "Compare 14469 versus 9295's autonomous strategy"
+  expect_sources: [stats, chroma, youtube, chief_delphi, reddit]
+  tags: [strategy, comparison]
+
+- id: no_rule_match_award_lookup
+  question: "What awards has 14469 won?"
+  expect_sources: [stats, chroma]
+  tags: [no_rule_match]
+
+- id: no_rule_match_generic
+  question: "Tell me about team 14469"
+  expect_sources: [stats, chroma]
+  tags: [no_rule_match]

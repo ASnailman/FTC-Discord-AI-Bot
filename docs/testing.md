@@ -8,20 +8,31 @@
 | Integration | `tests/integration/` | no (tmp-path ChromaDB) | yes |
 | Eval | `tests/eval/` | no (tmp-path ChromaDB) | yes |
 | Live | `tests/live/` | yes -- FTCScout + Gemini | no (`-m live`) |
+| External | `tests/external/` | yes -- Chief Delphi/Reddit/YouTube | no (`-m external`) |
 
 ```bash
 pytest                 # unit + integration + eval, offline, no keys needed
 pytest -m live          # live tier only; needs GOOGLE_API_KEY and network
+pytest -m external      # external community sources only; no key needed (Reddit self-skips without creds)
 pytest -m "not slow"    # skip anything that loads the real sentence-transformer model
 ```
 
-A bare `pytest` **cannot** touch the network even by accident: every non-`live` test gets an autouse fixture (`conftest.py:_block_network`) that monkeypatches `requests.post`/`requests.get`/`Session.request` to raise. `live`-marked tests are also auto-skipped unless both `-m live` is passed *and* `GOOGLE_API_KEY` is set (`conftest.py:pytest_collection_modifyitems`), so CI's default job never needs a secret.
+A bare `pytest` **cannot** touch the network even by accident: every non-`live`/`external` test gets an autouse fixture (`conftest.py:_block_network`) that monkeypatches `requests.post`/`requests.get`/`Session.request`, `httpx.Client.send`/`AsyncClient.send` (the transport `langchain_google_genai`'s Gemini client uses -- confirmed during development that this was a real gap: an offline test calling the LLM router with no mock made a genuine billed Gemini call before this patch existed), and `primp.Client.request`/`AsyncClient.request` (the native HTTP client `ddgs` defaults to) to raise. `live`-marked tests are also auto-skipped unless both `-m live` is passed *and* `GOOGLE_API_KEY` is set (`conftest.py:pytest_collection_modifyitems`); `external`-marked tests are auto-skipped unless `-m external` is passed (no key required -- Chief Delphi needs no auth, and the YouTube/Reddit cases self-skip or need only their own optional credentials), so CI's default job never needs a secret.
 
 ## Markers (`pyproject.toml`)
 
 - `live` -- hits FTCScout and/or Gemini.
+- `external` -- hits Chief Delphi, Reddit, and/or YouTube (see [nodes.md](nodes.md)).
 - `slow` -- would download/run the real `all-MiniLM-L6-v2` model.
 - `eval` -- a scored quality benchmark rather than a strict pass/fail unit test.
+
+## Testing the multi-source pipeline
+
+`tests/unit/test_prompt_compat.py` is the regression lock for [adr/0003](adr/0003-multi-source-retrieval-pipeline.md)'s core guarantee: it doesn't re-derive the prompt text, it asserts `chain.answer` calls the literal, unmodified `rag_chain.ask_bot` function whenever there's nothing external to add, and that `chain.EXTENDED_SYSTEM_PROMPT` is provably `rag_chain.SYSTEM_PROMPT` plus an appended section (`str.startswith`), never a rewrite. If this file's tests fail, treat it as seriously as a `test_extract_info_meets_precision_recall_floor` regression -- it means the new pipeline changed behavior for questions it shouldn't have touched.
+
+Each node has its own `tests/unit/test_<source>_node.py` (disabled/empty/ok/error/dedup/cache -- see [nodes.md](nodes.md)'s status table) and its own `tests/unit/test_tools_<source>.py` (the pure I/O adapter, HTTP mocked or a DI'd fake client -- following `tests/integration/test_vectordb.py`'s pattern of injecting a fake rather than patching library internals). `scripts/record_fixtures.py --chief-delphi "<term>"` extends the existing fixture-recording convention to `tests/fixtures/chiefdelphi/`.
+
+`scripts/eval_router.py` scores `nodes.router.route`'s source-selection precision/recall against `tests/fixtures/golden/router_cases.yaml`, the same shape as `scripts/eval_extraction.py`.
 
 ## Why a fake embedding function
 

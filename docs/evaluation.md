@@ -33,6 +33,14 @@ Requires `GOOGLE_API_KEY` and a seeded ChromaDB store (`scripts/reindex.py`). Ru
 - **answer_stability** -- across repeat runs of the same question, whether `required_facts_present` agrees every time. Low stability at the original `temperature=0.65` is expected; `temperature=0.0` (current default) should be close to 1.0.
 - **p50 / p95 latency**.
 
+## `scripts/eval_router.py`
+
+Not a before/after comparison (there is no pre-existing router to compare against) -- a standalone precision/recall eval for `nodes.router.route`'s source selection against `tests/fixtures/golden/router_cases.yaml`, with `ENABLE_LLM_ROUTER` disabled so the scored behavior is exactly the deterministic rules pass. Same shape as `eval_extraction.py`: micro precision/recall/F1, per-tag breakdown, confusions.
+
+```bash
+python scripts/eval_router.py --report evals/after_router.json
+```
+
 ## `scripts/compare_evals.py`
 
 Takes paired before/after JSON reports and renders a markdown delta table -- see [evaluation-results.md](evaluation-results.md), which is this script's output, committed so the before/after numbers live in the repo rather than only in a terminal that already scrolled away.

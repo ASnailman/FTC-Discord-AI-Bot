@@ -1,0 +1,30 @@
+{
+  "n_cases": 13,
+  "exact_match_rate": 1.0,
+  "micro_precision": 1.0,
+  "micro_recall": 1.0,
+  "micro_f1": 1.0,
+  "per_tag": {
+    "stats_lookup": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "strategy": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "reputation": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "comparison": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "no_rule_match": {
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "confusions": []
+}

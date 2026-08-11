@@ -30,6 +30,19 @@ def get_llm() -> ChatGoogleGenerativeAI:
 
 
 @lru_cache(maxsize=1)
+def get_llm_with_context() -> ChatGoogleGenerativeAI:
+    """Same model, larger max_tokens -- used only by `chain.answer` when
+    external context is actually fused into the prompt, so the
+    no-external-sources path (the vast majority of questions) keeps today's
+    exact token budget and truncation behavior unchanged."""
+    return ChatGoogleGenerativeAI(
+        model=config.GEMINI_MODEL,
+        temperature=config.GEMINI_TEMPERATURE,
+        max_tokens=config.GEMINI_MAX_TOKENS_WITH_CONTEXT,
+    )
+
+
+@lru_cache(maxsize=1)
 def get_chroma_client():
     config.CHROMA_PATH.mkdir(parents=True, exist_ok=True)
     return chromadb.PersistentClient(path=str(config.CHROMA_PATH))

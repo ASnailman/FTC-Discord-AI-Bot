@@ -57,8 +57,12 @@ Run with `.env` supplied at container start (`--env-file .env`), and a volume mo
 
 ## Logging
 
-`config.LOG_LEVEL` (default `INFO`) is read but the codebase currently uses `print()` for operational messages rather than the `logging` module. If you need structured logs for a hosted deployment, that's the one thing worth changing before going to production -- swap the `print()` calls in `vectordb.py`/`data_retrieval.py`/`bot.py` for `logging.getLogger(__name__)` calls at the appropriate level.
+`config.LOG_LEVEL` (default `INFO`) is applied by `logging_setup.configure()`, called once from `bot.py` at import time. The retrieval node pipeline (`nodes/`, `tools/`) and `bot.py`'s error handlers use `logging.getLogger(__name__)` throughout, so node failures, timeouts, and unhandled `/ask` errors show up as structured log lines rather than being silently swallowed or printed. Some pre-existing modules (`vectordb.py`, `data_retrieval.py`) still use `print()` for their own operational messages -- unchanged from before this pipeline, since converting them wasn't required by this work.
+
+## Network egress
+
+Beyond FTCScout and Gemini, the bot now optionally reaches `chiefdelphi.com` (on by default, no auth), `reddit.com`/OAuth (only if `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET` are set), and DuckDuckGo + `youtube.com` for caption fetches (only if `ENABLE_YOUTUBE=true`). If deploying behind an egress firewall, allow these hosts or leave the corresponding source disabled -- every node self-disables cleanly (`status="disabled"`) rather than failing the whole request when its host is unreachable, though an unreachable-but-enabled host will instead surface as `status="error"`/`"timeout"` after its budget expires (`NODE_TIMEOUT_SECONDS`/`PIPELINE_BUDGET_SECONDS`).
 
 ## Secrets
 
-`DISCORD_TOKEN` and `GOOGLE_API_KEY` must never be committed. `.env` is gitignored; in a hosted environment, prefer your platform's secret manager (systemd `EnvironmentFile` with restricted permissions, Docker secrets, or your cloud provider's secret store) over baking them into an image or committing an `.env` file anywhere, including private repos.
+`DISCORD_TOKEN` and `GOOGLE_API_KEY` must never be committed. `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET`, if you enable the Reddit source, are the same category of secret. `.env` is gitignored; in a hosted environment, prefer your platform's secret manager (systemd `EnvironmentFile` with restricted permissions, Docker secrets, or your cloud provider's secret store) over baking them into an image or committing an `.env` file anywhere, including private repos.

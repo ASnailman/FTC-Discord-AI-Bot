@@ -4,19 +4,29 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+import chain
 import config
 import clients
 from data_retrieval import fetch_team_data, get_cached_teams_by_region
 from extraction import extract_info
-from rag_chain import ask_bot
+from logging_setup import get_logger
 from seasons import SEASON_NAMES
 from vectordb import VectorDBManager
+
+logger = get_logger(__name__)
 
 vectordb = VectorDBManager()
 
 # Chroma's PersistentClient is not safe for concurrent writers; serialize
 # upserts across simultaneous /ask invocations.
 _chroma_write_lock = asyncio.Lock()
+
+# Discord echoes whatever text we send verbatim; external community sources
+# (Reddit/Chief Delphi/YouTube captions) are attacker-reachable text that
+# could contain an @everyone/@here or a user/role mention. Disabling all
+# mentions on every outbound message means such text is inert regardless of
+# what nodes.fusion's sanitization does or doesn't catch -- see docs/security.md.
+_NO_MENTIONS = discord.AllowedMentions.none()
 
 
 class MyBot(commands.Bot):
@@ -49,7 +59,7 @@ async def on_ready():
 @bot.tree.command(name="ping", description="Check the bot's latency")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
-    await interaction.response.send_message(f"Latency: {latency}ms")
+    await interaction.response.send_message(f"Latency: {latency}ms", allowed_mentions=_NO_MENTIONS)
 
 
 async def region_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -102,7 +112,7 @@ async def region_autocomplete(interaction: discord.Interaction, current: str) ->
 def _format_reply(question: str, team_nums: list[int], season: int, region: str, answer: str) -> str:
     """Restate the resolved question before the answer, so the user can see
     which team(s)/season/region the bot understood without changing what's
-    sent to the LLM (ask_bot still receives the raw `question`)."""
+    sent to the LLM (chain.answer still receives the raw `question`)."""
     context_question = f"Regarding Team(s) {team_nums} in the {season} season in {region} region: {question}"
     return f"Question: {context_question}\n\nAnswer: {answer}"
 
@@ -150,7 +160,8 @@ async def ask(interaction: discord.Interaction,
     region_dict = await asyncio.to_thread(get_cached_teams_by_region, region_str)
     if region_dict is None:
         await interaction.followup.send(
-            "I couldn't reach the FTCScout team directory right now. Please try again shortly."
+            "I couldn't reach the FTCScout team directory right now. Please try again shortly.",
+            allowed_mentions=_NO_MENTIONS,
         )
         return
 
@@ -160,9 +171,16 @@ async def ask(interaction: discord.Interaction,
     if not team_nums:
         await interaction.followup.send(
             "I couldn't identify a team in that question -- try including the team number or "
-            "name, e.g. `/ask question: How many matches did 14469 win?`"
+            "name, e.g. `/ask question: How many matches did 14469 win?`",
+            allowed_mentions=_NO_MENTIONS,
         )
         return
+
+    # Reverse lookup for the human-readable names of the identified teams --
+    # used by the external nodes (chain.answer) to build better search terms
+    # than the bare number alone (e.g. "Technophobia FTC" vs. "14469 FTC").
+    names_by_num = {num: name for name, num in region_dict.items()}
+    team_names = [names_by_num[n] for n in team_nums if n in names_by_num]
 
     async with _chroma_write_lock:
         for team_num in team_nums:
@@ -174,19 +192,28 @@ async def ask(interaction: discord.Interaction,
                     season=season_val,
                     region=region_str,
                 )
-            except Exception as e:
-                await interaction.followup.send(f"Failed to fetch data for team {team_num}: {e}")
+            except Exception:
+                logger.exception("failed to fetch/cache data for team %s", team_num)
+                await interaction.followup.send(
+                    f"Failed to fetch data for team {team_num}. Please try again shortly.",
+                    allowed_mentions=_NO_MENTIONS,
+                )
                 return
 
     try:
         answer = await asyncio.to_thread(
-            ask_bot, question, team_nums=team_nums, season=season_val, region=region_str,
+            chain.answer, question, team_nums=team_nums, season=season_val, region=region_str,
+            team_names=team_names,
         )
         reply = _format_reply(question, team_nums, season_val, region_str, answer)
         for chunk in _chunk_message(reply):
-            await interaction.followup.send(chunk)
-    except Exception as e:
-        await interaction.followup.send(f"An error occurred: {e}")
+            await interaction.followup.send(chunk, allowed_mentions=_NO_MENTIONS)
+    except Exception:
+        logger.exception("unhandled error answering question: %r", question)
+        await interaction.followup.send(
+            "Something went wrong answering that question. Please try again shortly.",
+            allowed_mentions=_NO_MENTIONS,
+        )
 
 
 if __name__ == "__main__":

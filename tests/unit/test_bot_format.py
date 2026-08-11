@@ -1,4 +1,4 @@
-from bot import _format_reply, _chunk_message
+from bot import _NO_MENTIONS, _format_reply, _chunk_message
 
 
 def test_format_reply_single_team():
@@ -35,3 +35,13 @@ def test_chunk_message_splits_long_text_on_whitespace():
     assert all(len(c) <= 100 for c in chunks)
     # no word should be split across chunks
     assert " ".join(chunks).replace("  ", " ") == text
+
+
+def test_no_mentions_suppresses_everyone_and_roles_and_users():
+    """External community text (Reddit/Chief Delphi/YouTube) is
+    attacker-reachable and gets echoed into Discord replies -- every
+    outbound send must use this so a stray @everyone/@role/@user in that
+    text can never actually ping anyone."""
+    assert _NO_MENTIONS.everyone is False
+    assert _NO_MENTIONS.users is False
+    assert _NO_MENTIONS.roles is False

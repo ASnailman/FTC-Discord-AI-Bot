@@ -41,3 +41,43 @@ TEAMS_INDEX_TTL_DAYS = int(os.getenv("TEAMS_INDEX_TTL_DAYS", "7"))
 DISCORD_MESSAGE_LIMIT = 1900  # Discord hard-caps at 2000; leave headroom.
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return val.strip().lower() in ("1", "true", "yes", "on")
+
+
+# --- Multi-source retrieval pipeline ---
+# Local sources (stats, chroma) are always on. Everything below is an
+# optional node that self-disables when unconfigured, so the bot's default
+# out-of-box behavior is identical to before this pipeline existed.
+
+REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
+REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
+REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "ftc-scouting-bot/0.1")
+# Derived, not a literal flag: Reddit is only usable once both creds exist.
+ENABLE_REDDIT = bool(REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET)
+
+ENABLE_CHIEF_DELPHI = _env_bool("ENABLE_CHIEF_DELPHI", True)
+# Off by default: slowest, least reliable node (web search + captions).
+ENABLE_YOUTUBE = _env_bool("ENABLE_YOUTUBE", False)
+ENABLE_LLM_ROUTER = _env_bool("ENABLE_LLM_ROUTER", True)
+
+NODE_TIMEOUT_SECONDS = float(os.getenv("NODE_TIMEOUT_SECONDS", "6"))
+PIPELINE_BUDGET_SECONDS = float(os.getenv("PIPELINE_BUDGET_SECONDS", "12"))
+EXTERNAL_CACHE_TTL_MINUTES = int(os.getenv("EXTERNAL_CACHE_TTL_MINUTES", "60"))
+
+MAX_EXTERNAL_CHARS_PER_SOURCE = int(os.getenv("MAX_EXTERNAL_CHARS_PER_SOURCE", "3000"))
+MAX_EXTERNAL_CHARS_TOTAL = int(os.getenv("MAX_EXTERNAL_CHARS_TOTAL", "8000"))
+
+CHIEF_DELPHI_MAX_POSTS = int(os.getenv("CHIEF_DELPHI_MAX_POSTS", "5"))
+REDDIT_MAX_POSTS = int(os.getenv("REDDIT_MAX_POSTS", "5"))
+YOUTUBE_MAX_VIDEOS = int(os.getenv("YOUTUBE_MAX_VIDEOS", "2"))
+
+# Raised only when external context is actually fused into the prompt
+# (rag_chain.ask_bot / chain.answer), so the no-external-sources path keeps
+# today's exact token budget and truncation behavior.
+GEMINI_MAX_TOKENS_WITH_CONTEXT = int(os.getenv("GEMINI_MAX_TOKENS_WITH_CONTEXT", "2048"))
