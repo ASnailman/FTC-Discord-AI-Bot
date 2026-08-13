@@ -59,9 +59,17 @@ Run with `.env` supplied at container start (`--env-file .env`), and a volume mo
 
 `config.LOG_LEVEL` (default `INFO`) is applied by `logging_setup.configure()`, called once from `bot.py` at import time. The retrieval node pipeline (`nodes/`, `tools/`) and `bot.py`'s error handlers use `logging.getLogger(__name__)` throughout, so node failures, timeouts, and unhandled `/ask` errors show up as structured log lines rather than being silently swallowed or printed. Some pre-existing modules (`vectordb.py`, `data_retrieval.py`) still use `print()` for their own operational messages -- unchanged from before this pipeline, since converting them wasn't required by this work.
 
+## /portfolio: dependencies and memory
+
+Four extra pure-Python dependencies (`pypdf`, `pypdfium2`, `Pillow`, `python-docx`) are added to `requirements.txt` for this feature; none require a system library or a model download, so no deployment-environment change is needed beyond `pip install -r requirements.txt`. `pypdfium2` ships prebuilt platform wheels (no `poppler`/`mupdf` system install required).
+
+Memory is the thing to watch: rasterizing PDF pages (`pypdfium2`) and holding several normalized images in memory per run is heavier, if shorter-lived, than anything `/ask` does. `PORTFOLIO_MAX_CONCURRENT` (default 2) bounds how many `/portfolio` runs can be doing this at once; `PORTFOLIO_IMAGE_MAX_EDGE_PX` and `PORTFOLIO_MAX_PDF_RENDER_PAGES` bound the size and count of what's held per run. No new persistent volume is needed -- `/portfolio` writes nothing to disk; generated files are held in memory and streamed to Discord as attachments.
+
 ## Network egress
 
 Beyond FTCScout and Gemini, the bot now optionally reaches `chiefdelphi.com` (on by default, no auth), `reddit.com`/OAuth (only if `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET` are set), and DuckDuckGo + `youtube.com` for caption fetches (only if `ENABLE_YOUTUBE=true`). If deploying behind an egress firewall, allow these hosts or leave the corresponding source disabled -- every node self-disables cleanly (`status="disabled"`) rather than failing the whole request when its host is unreachable, though an unreachable-but-enabled host will instead surface as `status="error"`/`"timeout"` after its budget expires (`NODE_TIMEOUT_SECONDS`/`PIPELINE_BUDGET_SECONDS`).
+
+`/portfolio` adds no new egress host -- it only calls Gemini (text and vision), the same host `/ask` already requires. File uploads are downloaded from Discord's CDN via `discord.Attachment.read()`, the same client `/ask` and `/ping` already depend on.
 
 ## Secrets
 

@@ -1,4 +1,6 @@
 import asyncio
+import io
+import re
 
 import discord
 from discord import app_commands
@@ -10,7 +12,14 @@ import clients
 from data_retrieval import fetch_team_data, get_cached_teams_by_region
 from extraction import extract_info
 from logging_setup import get_logger
-from seasons import SEASON_NAMES
+from portfolio import compose as portfolio_compose
+from portfolio import extract as portfolio_extract
+from portfolio import ingest as portfolio_ingest
+from portfolio import render as portfolio_render
+from portfolio import throttle as portfolio_throttle
+from portfolio import vision as portfolio_vision
+from portfolio.theme import ACCENT_CHOICES
+from seasons import CURRENT_SEASON, SEASON_NAMES, season_name
 from vectordb import VectorDBManager
 
 logger = get_logger(__name__)
@@ -213,6 +222,167 @@ async def ask(interaction: discord.Interaction,
         await interaction.followup.send(
             "Something went wrong answering that question. Please try again shortly.",
             allowed_mentions=_NO_MENTIONS,
+        )
+
+
+_OUTPUT_NAME_UNSAFE_RE = re.compile(r"[^A-Za-z0-9._-]")
+
+
+def _portfolio_output_basename(team: int, season_val: int) -> str:
+    return _OUTPUT_NAME_UNSAFE_RE.sub("_", f"{team}-portfolio-{season_val}")
+
+
+@bot.tree.command(name="portfolio", description="Generate an FTC engineering portfolio from your uploaded files")
+@app_commands.describe(
+    team="Your FTC team number",
+    instructions="How to tailor it -- tone, emphasis, sections to expand or drop (optional)",
+    season="Season this portfolio covers (OPTIONAL), defaults to the current season",
+    accent="Accent color for the design (optional)",
+    past_portfolio="Last year's portfolio to build on -- PDF/DOCX/MD/TXT (optional)",
+    file1="A CAD render, photo, meeting notes, or other resource (optional)",
+    file2="A CAD render, photo, meeting notes, or other resource (optional)",
+    file3="A CAD render, photo, meeting notes, or other resource (optional)",
+    file4="A CAD render, photo, meeting notes, or other resource (optional)",
+    file5="A CAD render, photo, meeting notes, or other resource (optional)",
+)
+@app_commands.choices(season=[
+    app_commands.Choice(name=f"{name} ({year})", value=year)
+    for year, name in SEASON_NAMES.items()
+])
+@app_commands.choices(accent=[
+    app_commands.Choice(name=name.capitalize(), value=name)
+    for name in ACCENT_CHOICES
+])
+@app_commands.checks.cooldown(1, config.PORTFOLIO_COOLDOWN_SECONDS, key=lambda i: i.user.id)
+async def portfolio(
+    interaction: discord.Interaction,
+    team: int,
+    instructions: str = None,
+    season: app_commands.Choice[int] = None,
+    accent: app_commands.Choice[str] = None,
+    past_portfolio: discord.Attachment = None,
+    file1: discord.Attachment = None,
+    file2: discord.Attachment = None,
+    file3: discord.Attachment = None,
+    file4: discord.Attachment = None,
+    file5: discord.Attachment = None,
+):
+    if not config.ENABLE_PORTFOLIO:
+        await interaction.response.send_message(
+            "Portfolio generation is currently disabled.", ephemeral=True, allowed_mentions=_NO_MENTIONS,
+        )
+        return
+
+    attachments = [a for a in (past_portfolio, file1, file2, file3, file4, file5) if a is not None]
+    if not attachments:
+        await interaction.response.send_message(
+            "Attach at least one file (CAD renders, photos, notes, or a past portfolio) to "
+            "generate from.",
+            ephemeral=True, allowed_mentions=_NO_MENTIONS,
+        )
+        return
+
+    season_val = season.value if season is not None else CURRENT_SEASON
+    season_label = f"{season_name(season_val)} ({season_val})"
+    accent_val = accent.value if accent is not None else None
+
+    await interaction.response.defer()
+
+    async with portfolio_throttle.concurrency_semaphore():
+        try:
+            await interaction.edit_original_response(content="Reading your files...")
+            ingested = await portfolio_ingest.validate_and_read(attachments)
+
+            await interaction.edit_original_response(content="Extracting text and images...")
+            extraction = await asyncio.to_thread(portfolio_extract.extract_all, ingested)
+
+            try:
+                portfolio_throttle.check_and_consume_daily_quota(interaction.user.id)
+            except portfolio_throttle.QuotaExceededError as exc:
+                hours = exc.retry_after_seconds / 3600
+                await interaction.edit_original_response(
+                    content=(
+                        f"You've reached today's /portfolio limit ({config.PORTFOLIO_DAILY_QUOTA}/day). "
+                        f"Try again in about {hours:.1f}h."
+                    )
+                )
+                return
+
+            captions = {}
+            if extraction.images:
+                await interaction.edit_original_response(content="Analyzing images...")
+                captions = await asyncio.to_thread(portfolio_vision.analyze_images, extraction.images)
+
+            await interaction.edit_original_response(content="Writing your portfolio...")
+            doc, images = await asyncio.to_thread(
+                portfolio_compose.compose,
+                team_number=team,
+                season_label=season_label,
+                instructions=instructions or "",
+                accent=accent_val,
+                texts=extraction.texts,
+                images=extraction.images,
+                captions=captions,
+            )
+
+            await interaction.edit_original_response(content="Rendering...")
+            html_doc = portfolio_render.render_html(doc, images)
+            markdown_doc = portfolio_render.render_markdown(doc)
+
+            if len(html_doc.encode("utf-8")) > config.PORTFOLIO_MAX_OUTPUT_MB * 1024 * 1024:
+                await interaction.edit_original_response(
+                    content=(
+                        "The generated portfolio was too large to send, even after downscaling "
+                        "images. Try attaching fewer or smaller images."
+                    )
+                )
+                return
+
+            base_name = _portfolio_output_basename(team, season_val)
+            summary = [f"Portfolio generated for team {team} -- {len(doc.pages)} page(s), {len(images)} image(s) embedded."]
+            if extraction.warnings:
+                summary.append("Notes: " + "; ".join(extraction.warnings[:5]))
+            await interaction.edit_original_response(content="\n".join(summary))
+
+            await interaction.followup.send(
+                files=[
+                    discord.File(fp=io.BytesIO(html_doc.encode("utf-8")), filename=f"{base_name}.html"),
+                    discord.File(fp=io.BytesIO(markdown_doc.encode("utf-8")), filename=f"{base_name}.md"),
+                ],
+                allowed_mentions=_NO_MENTIONS,
+            )
+        except portfolio_ingest.IngestError as exc:
+            await interaction.edit_original_response(content=str(exc))
+        except portfolio_compose.ComposeError as exc:
+            await interaction.edit_original_response(content=str(exc))
+        except portfolio_render.RenderSecurityError:
+            logger.exception("portfolio render security scan tripped for team %s", team)
+            await interaction.edit_original_response(
+                content="Something went wrong generating that portfolio. Please try again shortly."
+            )
+        except Exception:
+            logger.exception("unhandled error generating portfolio for team %s", team)
+            await interaction.edit_original_response(
+                content="Something went wrong generating that portfolio. Please try again shortly."
+            )
+
+
+@portfolio.error
+async def portfolio_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.CommandOnCooldown):
+        await interaction.response.send_message(
+            f"Please wait {error.retry_after:.0f}s before generating another portfolio.",
+            ephemeral=True, allowed_mentions=_NO_MENTIONS,
+        )
+        return
+    logger.exception("unhandled /portfolio framework error", exc_info=error)
+    if interaction.response.is_done():
+        await interaction.followup.send(
+            "Something went wrong. Please try again shortly.", allowed_mentions=_NO_MENTIONS,
+        )
+    else:
+        await interaction.response.send_message(
+            "Something went wrong. Please try again shortly.", allowed_mentions=_NO_MENTIONS,
         )
 
 

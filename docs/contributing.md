@@ -39,6 +39,10 @@ Add an entry to `tests/fixtures/golden/extract_info_cases.yaml` with a real team
 
 See [nodes.md](nodes.md)'s "Adding a new node" section for the full checklist (tool adapter, node wrapper, registry, router wiring, config, tests). The short version: put pure I/O in `tools/`, wrap it as a `@retrieval_node` in `nodes/`, register it in `nodes/__init__.py`, and add it to `nodes/router.py`'s `INTENT_SOURCES`. Every new node must default to a behavior-preserving state (off, or self-disabling without credentials) so a fresh checkout with no new env vars set behaves exactly as it did before the node existed.
 
+## Adding a portfolio block type
+
+See [portfolio.md](portfolio.md)'s "Adding a new block type" for the full checklist (schema, renderer, CSS, prompt, tests). The short version: add the pydantic model to `portfolio/schema.py`'s `Block` union with length-capped fields, a renderer in `portfolio/render.py`, and -- critically -- add the new block to every payload-injection loop in `tests/unit/portfolio/test_render.py`. A new block type is a new place model-influenced text reaches the rendered page, so it needs the same XSS coverage as the existing ones from the start, not as a follow-up.
+
 ## Code style
 
 - No comments explaining *what* code does -- names should make that obvious. Comments are for *why*: a non-obvious constraint, a workaround for a specific upstream quirk (e.g. FTCScout's remote-season flat score shape), a tradeoff a future reader would otherwise "fix" back into a bug.

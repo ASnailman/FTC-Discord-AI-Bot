@@ -25,12 +25,13 @@
    - Embed Links
    - Read Message History
    - Use Application Commands
+   - Attach Files (needed for `/portfolio`'s HTML/Markdown attachments; `/ask` and `/ping` don't need it)
 4. Copy the generated URL at the bottom of the page.
 
-Alternatively, build it directly once you have your Application ID (Developer Portal -> General Information) and the permissions integer for the four permissions above (Send Messages `2048` + Embed Links `16384` + Read Message History `65536` + Use Application Commands `2147483648` = `2147567616`):
+Alternatively, build it directly once you have your Application ID (Developer Portal -> General Information) and the permissions integer for the five permissions above (Send Messages `2048` + Embed Links `16384` + Attach Files `32768` + Read Message History `65536` + Use Application Commands `2147483648` = `2147600384`):
 
 ```
-https://discord.com/api/oauth2/authorize?client_id=<APPLICATION_ID>&permissions=2147567616&scope=bot%20applications.commands
+https://discord.com/api/oauth2/authorize?client_id=<APPLICATION_ID>&permissions=2147600384&scope=bot%20applications.commands
 ```
 
 ## 4. Invite it to a server
@@ -57,4 +58,5 @@ You should see `Logged in as <bot name>` and either `Synced slash commands to gu
 | `/ask` doesn't appear in Discord | Missing `applications.commands` scope on the invite (step 3), or global sync still propagating (wait up to an hour, or use `DISCORD_GUILD_ID` for instant sync). |
 | `401: Unauthorized` / "Improper token" on startup | `DISCORD_TOKEN` is wrong, was reset since you copied it, or has stray whitespace/quotes in `.env`. |
 | `Missing Access` when the bot tries to respond | The bot's role in the server lacks Send Messages / Embed Links in that channel. |
+| `/portfolio` fails to send its files | The bot's role lacks Attach Files in that channel -- re-invite with the URL in step 3, or grant the permission directly in Server Settings -> Roles. |
 | Discord returns `50035` (invalid form body) on a long answer | The reply exceeded Discord's 2000-character single-message limit. `bot.py` already chunks long replies (`_chunk_message`); if you've raised `GEMINI_MAX_TOKENS` further, verify the chunking still fires. |

@@ -81,3 +81,54 @@ YOUTUBE_MAX_VIDEOS = int(os.getenv("YOUTUBE_MAX_VIDEOS", "2"))
 # (rag_chain.ask_bot / chain.answer), so the no-external-sources path keeps
 # today's exact token budget and truncation behavior.
 GEMINI_MAX_TOKENS_WITH_CONTEXT = int(os.getenv("GEMINI_MAX_TOKENS_WITH_CONTEXT", "2048"))
+
+# --- /portfolio: user-upload-driven engineering portfolio generation ---
+# Fully independent of the /ask pipeline above -- see docs/portfolio.md and
+# docs/adr/0004-portfolio-generation.md. Off switch kept separate from the
+# multi-source pipeline's flags since this is the bot's first feature that
+# accepts file uploads and emits HTML, not text.
+
+ENABLE_PORTFOLIO = _env_bool("ENABLE_PORTFOLIO", True)
+
+PORTFOLIO_GEMINI_MODEL = os.getenv("PORTFOLIO_GEMINI_MODEL", GEMINI_MODEL)
+PORTFOLIO_GEMINI_TEMPERATURE = float(os.getenv("PORTFOLIO_GEMINI_TEMPERATURE", "0.4"))
+PORTFOLIO_GEMINI_MAX_TOKENS = int(os.getenv("PORTFOLIO_GEMINI_MAX_TOKENS", "4096"))
+
+# Upload limits, checked before any file content is read. Defaults are
+# effectively "no limit" for a Discord attachment: Discord itself caps
+# attachments at 10-500 MB depending on server boost level, well under the
+# 1 GB/file, 6 GB/total ceilings here -- these exist as a backstop against
+# a pathological value (e.g. a future attachment source without Discord's
+# own cap), not as a meaningful restriction in normal use.
+PORTFOLIO_MAX_FILES = int(os.getenv("PORTFOLIO_MAX_FILES", "6"))
+PORTFOLIO_MAX_FILE_MB = float(os.getenv("PORTFOLIO_MAX_FILE_MB", "1024"))
+PORTFOLIO_MAX_TOTAL_MB = float(os.getenv("PORTFOLIO_MAX_TOTAL_MB", "6144"))
+
+# Text-content limits, enforced during extraction.
+PORTFOLIO_MAX_INSTRUCTION_CHARS = int(os.getenv("PORTFOLIO_MAX_INSTRUCTION_CHARS", "1500"))
+PORTFOLIO_MAX_EXTRACTED_CHARS_PER_FILE = int(os.getenv("PORTFOLIO_MAX_EXTRACTED_CHARS_PER_FILE", "40000"))
+PORTFOLIO_MAX_EXTRACTED_CHARS_TOTAL = int(os.getenv("PORTFOLIO_MAX_EXTRACTED_CHARS_TOTAL", "120000"))
+PORTFOLIO_MAX_PDF_PAGES = int(os.getenv("PORTFOLIO_MAX_PDF_PAGES", "60"))
+PORTFOLIO_MAX_PDF_RENDER_PAGES = int(os.getenv("PORTFOLIO_MAX_PDF_RENDER_PAGES", "8"))
+
+# Image handling: vision-analysis cap, and the longest edge every image is
+# downscaled to before embedding or sending to Gemini.
+PORTFOLIO_MAX_VISION_IMAGES = int(os.getenv("PORTFOLIO_MAX_VISION_IMAGES", "10"))
+PORTFOLIO_IMAGE_MAX_EDGE_PX = int(os.getenv("PORTFOLIO_IMAGE_MAX_EDGE_PX", "1600"))
+PORTFOLIO_VISION_TIMEOUT_SECONDS = float(os.getenv("PORTFOLIO_VISION_TIMEOUT_SECONDS", "20"))
+PORTFOLIO_VISION_CACHE_TTL_MINUTES = int(os.getenv("PORTFOLIO_VISION_CACHE_TTL_MINUTES", "120"))
+
+# Output size cap (embedded images pushed the HTML over this get downscaled
+# further, then dropped, lowest priority first).
+PORTFOLIO_MAX_OUTPUT_MB = float(os.getenv("PORTFOLIO_MAX_OUTPUT_MB", "7"))
+
+# Abuse/cost controls: a per-user Discord cooldown (enforced by
+# app_commands.checks.cooldown), a per-user rolling daily quota, and a
+# process-wide concurrency cap so multiple simultaneous runs can't pile up
+# Gemini calls or memory.
+PORTFOLIO_COOLDOWN_SECONDS = float(os.getenv("PORTFOLIO_COOLDOWN_SECONDS", "300"))
+PORTFOLIO_DAILY_QUOTA = int(os.getenv("PORTFOLIO_DAILY_QUOTA", "5"))
+PORTFOLIO_MAX_CONCURRENT = int(os.getenv("PORTFOLIO_MAX_CONCURRENT", "2"))
+
+# Overall wall-clock budget for one generation (ingest through render).
+PORTFOLIO_BUDGET_SECONDS = float(os.getenv("PORTFOLIO_BUDGET_SECONDS", "180"))

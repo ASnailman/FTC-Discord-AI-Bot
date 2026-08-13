@@ -15,10 +15,11 @@ and achieved a record of 19-6-0.
 
 ## What it does
 
-| Command | Description |
-|---|---|
-| `/ask question season? region?` | Ask about one or more FTC teams. `question` is required; `season` (defaults to the current season) and `region` (defaults to all regions) are optional, with autocomplete. |
-| `/ping` | Check the bot's latency. |
+| Command                                                    | Description                                                                                                                                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/ask question season? region?`                          | Ask about one or more FTC teams.`question` is required; `season` (defaults to the current season) and `region` (defaults to all regions) are optional, with autocomplete. |
+| `/portfolio team instructions? season? accent? files...` | Generate a self-contained HTML + Markdown engineering portfolio from up to six uploaded files (CAD renders, photos, notes, a past portfolio).                                   |
+| `/ping`                                                  | Check the bot's latency.                                                                                                                                                        |
 
 `/ask` identifies which team(s) a question refers to (by number or name), fetches and caches their data, and answers using only that team's data for the requested season -- it will not mix in another team's stats or a different season's results. It can also reason about hypothetical, strategic, or comparative questions:
 
@@ -41,6 +42,8 @@ For these, the bot goes beyond FTCScout data: it deterministically computes a he
 7. **Generation** ([src/chain.py](src/chain.py), Gemini via LangChain) answers using the retrieved context, the verified facts block, and (when relevant) community context, grounding every specific number while still allowing reasoning and recommendations for open-ended questions.
 
 See [docs/architecture.md](docs/architecture.md) for the full request lifecycle and a sequence diagram, [docs/retrieval.md](docs/retrieval.md) for the reasoning behind steps 4-5, and [docs/nodes.md](docs/nodes.md) + [docs/adr/0003-multi-source-retrieval-pipeline.md](docs/adr/0003-multi-source-retrieval-pipeline.md) for steps 3 and 6.
+
+`/portfolio` is a separate, independent pipeline: it ingests and validates uploaded files, extracts text/images (falling back to rendering PDF pages as images when a PDF has no extractable text), gets a Gemini caption for each image, then has the model fill in a validated document schema -- never raw HTML -- which is rendered into a self-contained portfolio page. See [docs/portfolio.md](docs/portfolio.md) and [docs/adr/0004-portfolio-generation.md](docs/adr/0004-portfolio-generation.md).
 
 ## Quick start
 
@@ -79,13 +82,14 @@ python src/bot.py
 
 Set in `.env` (see [.env.example](.env.example) for the full list with defaults):
 
-| Variable | Required | Description |
-|---|---|---|
-| `DISCORD_TOKEN` | yes | Bot token from the Discord Developer Portal. |
-| `GOOGLE_API_KEY` | yes | Gemini API key from [aistudio.google.com](https://aistudio.google.com/apikey). |
-| `DISCORD_GUILD_ID` | no | Set during development for instant slash-command sync to one server; omit for global sync (~1 hour to propagate, works everywhere). |
-| `CHROMA_PATH`, `EMBEDDING_MODEL`, `GEMINI_MODEL`, `RETRIEVAL_K`, `CACHE_TTL_HOURS`, `TEAMS_INDEX_TTL_DAYS` | no | Tuning knobs; see [src/config.py](src/config.py) for defaults. |
-| `ENABLE_CHIEF_DELPHI`, `ENABLE_YOUTUBE`, `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET`, `ENABLE_LLM_ROUTER`, `NODE_TIMEOUT_SECONDS`, `PIPELINE_BUDGET_SECONDS` | no | Multi-source retrieval pipeline knobs -- see [docs/nodes.md](docs/nodes.md) and [.env.example](.env.example). All default to behavior identical to before this pipeline existed: Chief Delphi on (no auth), YouTube off, Reddit self-disabled without credentials. |
+| Variable                                                                                                                                                                 | Required | Description                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DISCORD_TOKEN`                                                                                                                                                        | yes      | Bot token from the Discord Developer Portal.                                                                                                                                                                                                                    |
+| `GOOGLE_API_KEY`                                                                                                                                                       | yes      | Gemini API key from[aistudio.google.com](https://aistudio.google.com/apikey).                                                                                                                                                                                    |
+| `DISCORD_GUILD_ID`                                                                                                                                                     | no       | Set during development for instant slash-command sync to one server; omit for global sync (~1 hour to propagate, works everywhere).                                                                                                                             |
+| `CHROMA_PATH`, `EMBEDDING_MODEL`, `GEMINI_MODEL`, `RETRIEVAL_K`, `CACHE_TTL_HOURS`, `TEAMS_INDEX_TTL_DAYS`                                                   | no       | Tuning knobs; see[src/config.py](src/config.py) for defaults.                                                                                                                                                                                                    |
+| `ENABLE_CHIEF_DELPHI`, `ENABLE_YOUTUBE`, `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET`, `ENABLE_LLM_ROUTER`, `NODE_TIMEOUT_SECONDS`, `PIPELINE_BUDGET_SECONDS` | no       | Multi-source retrieval pipeline knobs -- see[docs/nodes.md](docs/nodes.md) and [.env.example](.env.example). All default to behavior identical to before this pipeline existed: Chief Delphi on (no auth), YouTube off, Reddit self-disabled without credentials. |
+| `ENABLE_PORTFOLIO`, `PORTFOLIO_MAX_FILES`, `PORTFOLIO_MAX_FILE_MB`, `PORTFOLIO_DAILY_QUOTA`, `PORTFOLIO_COOLDOWN_SECONDS`, ...                                 | no       | `/portfolio` limits -- uploads, output size, per-user quota/cooldown. Full list in [docs/portfolio.md](docs/portfolio.md) and [.env.example](.env.example).                                                                                                     |
 
 ## Create your Discord application & bot
 
@@ -93,7 +97,7 @@ Full walkthrough in [docs/setup-discord.md](docs/setup-discord.md). Summary:
 
 1. Create an application at the [Discord Developer Portal](https://discord.com/developers/applications).
 2. **Bot** tab -> Reset Token -> copy it into `DISCORD_TOKEN` (shown only once).
-3. **OAuth2 -> URL Generator** -> scopes: `bot` **and** `applications.commands` (both are required -- slash commands never appear with only `bot`). Permissions: Send Messages, Use Application Commands, Embed Links, Read Message History.
+3. **OAuth2 -> URL Generator** -> scopes: `bot` **and** `applications.commands` (both are required -- slash commands never appear with only `bot`). Permissions: Send Messages, Use Application Commands, Embed Links, Read Message History, Attach Files (for `/portfolio`).
 4. Open the generated URL and invite the bot to your server.
 
 ## Testing
@@ -124,17 +128,18 @@ src/
   chain.py           Multi-source orchestrator: route, run nodes, fuse, or fall back unchanged
   nodes/             Retrieval node pipeline: router, stats/chroma/chief_delphi/reddit/youtube, fusion
   tools/             Pure I/O adapters for nodes/: http, cache, discourse, reddit, youtube
-  clients.py         Process-wide singletons (LLM, embeddings, vector store)
+  portfolio/         /portfolio's isolated pipeline: ingest, extract, sanitize, vision, compose, schema, render, throttle
+  clients.py         Process-wide singletons (LLM, embeddings, vector store, portfolio LLM)
   logging_setup.py   Applies config.LOG_LEVEL to the standard logging module
   config.py, seasons.py, textutils.py
 tests/
-  unit/, integration/, eval/   offline, run by default
+  unit/, integration/, eval/   offline, run by default (unit/portfolio/ covers /portfolio)
   live/                        hits FTCScout/Gemini, run with `pytest -m live`
   external/                    hits Chief Delphi/Reddit/YouTube, run with `pytest -m external`
   fixtures/, support/, conftest.py
 scripts/
   reindex.py, record_fixtures.py, eval_*.py, compare_evals.py
-docs/                architecture, data model, retrieval design, node pipeline, security, testing, deployment, ADRs
+docs/                architecture, data model, retrieval design, node pipeline, portfolio, security, testing, deployment, ADRs
 ```
 
 ## Data source & attribution
@@ -149,6 +154,8 @@ Team, event, match, and award data comes from the [FTCScout](https://ftcscout.or
 - Community sources are best-effort and often return nothing: Chief Delphi is FRC-leaning (an FTC team's number/name may have zero posts), and most FTC robot-reveal videos have no captions at all. An empty result from these is normal, not a bug -- the bot still answers from FTCScout data alone.
 - Community content is opinion, not verified fact, and is presented to the model (and, implicitly, to the user) as such -- see [docs/security.md](docs/security.md) for how it's sanitized and fenced before reaching the prompt.
 - The head-to-head comparison table (for "who would win" style questions) is capped at 2-3 teams and is itself best-effort: if any team's FTCScout fetch fails within its short time budget, the comparison is silently omitted rather than shown partial or wrong.
+- `/portfolio`'s output is a draft: the model can only work from what it's given, and it's instructed never to invent numbers or accomplishments, but a team should still read and verify the generated content before submitting it -- judges award for the team's own work, not the bot's writing.
+- An image-only PDF (a design-software export with no text layer, like the reference portfolio this feature is styled on) costs one extra Gemini vision call per rendered page, capped by `PORTFOLIO_MAX_PDF_RENDER_PAGES`; a normal, text-based PDF doesn't pay this cost.
 
 ## License
 

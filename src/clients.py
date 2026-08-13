@@ -43,6 +43,18 @@ def get_llm_with_context() -> ChatGoogleGenerativeAI:
 
 
 @lru_cache(maxsize=1)
+def get_portfolio_llm() -> ChatGoogleGenerativeAI:
+    """Separate singleton for /portfolio -- independent model/temperature/
+    token-budget knobs (config.PORTFOLIO_GEMINI_*) so tuning portfolio
+    generation can never change /ask's `get_llm()` behavior."""
+    return ChatGoogleGenerativeAI(
+        model=config.PORTFOLIO_GEMINI_MODEL,
+        temperature=config.PORTFOLIO_GEMINI_TEMPERATURE,
+        max_tokens=config.PORTFOLIO_GEMINI_MAX_TOKENS,
+    )
+
+
+@lru_cache(maxsize=1)
 def get_chroma_client():
     config.CHROMA_PATH.mkdir(parents=True, exist_ok=True)
     return chromadb.PersistentClient(path=str(config.CHROMA_PATH))

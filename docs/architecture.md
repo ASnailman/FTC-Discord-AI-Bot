@@ -1,6 +1,6 @@
 # Architecture
 
-## Request lifecycle
+## Request lifecycle: /ask
 
 See [../diagram.md](../diagram.md) for the sequence diagram. In prose:
 
@@ -10,6 +10,19 @@ See [../diagram.md](../diagram.md) for the sequence diagram. In prose:
 4. For each identified team, `vectordb.VectorDBManager.get_or_load_team` checks whether that team+season is already cached and fresh (TTL-gated for the current season); on a miss it fetches from FTCScout, chunks the payload (`processor.process_team_data`), and upserts into ChromaDB.
 5. `chain.answer` routes the question (`nodes.router.route`), then either calls `rag_chain.ask_bot` unchanged (the common case -- a direct lookup, or every external source came back empty) or runs the stats/chroma/external nodes concurrently and fuses their output into an extended prompt before calling Gemini. See [nodes.md](nodes.md) and [adr/0003](adr/0003-multi-source-retrieval-pipeline.md) for the node pipeline this adds.
 6. The bot replies, chunked under Discord's 2000-character limit if needed, with `allowed_mentions` disabled on every send (external content is attacker-reachable text -- see [security.md](security.md)).
+
+## Request lifecycle: /portfolio
+
+A second, independent lifecycle -- see [portfolio.md](portfolio.md) and [adr/0004](adr/0004-portfolio-generation.md) for the full pipeline and design rationale. In prose:
+
+1. A user runs `/portfolio team:... instructions:"..."` with up to six file attachments. `bot.py` validates there's at least one attachment and the feature is enabled, then `interaction.response.defer()`.
+2. `portfolio.ingest.validate_and_read` downloads and validates each attachment (size, extension, magic bytes) before anything is parsed.
+3. `portfolio.extract.extract_all` turns each file into text and/or images; an image-only PDF falls back to rasterizing pages.
+4. `portfolio.vision.analyze_images` gets a Gemini caption for each image, bounded and cached by content hash.
+5. `portfolio.compose.compose` runs a page-planning "brief" call, then one structured-output call per planned page, each bound directly to the `schema.PortfolioPage` contract -- the model's response *is* the validated document.
+6. `portfolio.render.render_html`/`render_markdown` turn the validated document into the final files; `bot.py` attaches both via `discord.File`, chunked under Discord's 2000-character limit for the summary text and under `PORTFOLIO_MAX_OUTPUT_MB` for the HTML file itself.
+
+This lifecycle shares no code with `/ask`'s: `portfolio/` imports nothing from `chain.py`/`rag_chain.py`/`nodes/`, and has its own LLM singleton (`clients.get_portfolio_llm`). See [adr/0004](adr/0004-portfolio-generation.md) for why.
 
 ## Module responsibilities
 
@@ -24,7 +37,8 @@ See [../diagram.md](../diagram.md) for the sequence diagram. In prose:
 | `rag_chain.py` | Builds the metadata filter, the prompt, and drives the LangChain retrieval + generation chain for the direct-lookup path. |
 | `chain.py` | Multi-source orchestrator: routes, runs nodes, fuses external context, falls back to `rag_chain.ask_bot` unchanged when there's nothing to add. See [nodes.md](nodes.md). |
 | `nodes/`, `tools/` | The retrieval node pipeline (stats/chroma/chief_delphi/reddit/youtube) and their pure I/O adapters. See [nodes.md](nodes.md). |
-| `clients.py` | Process-wide singletons (embeddings model, LLM, Chroma client/vector store) so they're constructed once, not per request. |
+| `portfolio/` | `/portfolio`'s isolated pipeline: ingest, extract, sanitize, vision, compose, schema, render, throttle. Shares no code with `/ask`'s pipeline. See [portfolio.md](portfolio.md). |
+| `clients.py` | Process-wide singletons (embeddings model, LLM, Chroma client/vector store, and a separate portfolio-composition LLM) so they're constructed once, not per request. |
 | `logging_setup.py` | Applies `config.LOG_LEVEL` to the standard `logging` module (pre-existing modules still use `print()`; new code uses `logging.getLogger`). |
 | `config.py`, `seasons.py`, `textutils.py` | Shared constants and small formatting helpers. |
 
@@ -37,6 +51,8 @@ Inside that worker thread, `chain.answer` may itself fan out further: `nodes.bas
 ChromaDB's `PersistentClient` is not safe for concurrent writers, so `bot.py` serializes upserts across simultaneous `/ask` invocations with an `asyncio.Lock`.
 
 `clients.warm_up()` runs once in `setup_hook` (also off the event loop) so the sentence-transformer model is loaded before the first real request, not during it.
+
+`/portfolio` follows the same off-event-loop pattern for its own blocking work (`extract.extract_all`, `vision.analyze_images`, `compose.compose` all run via `asyncio.to_thread`), plus its own concurrency layer: `portfolio.throttle.concurrency_semaphore()` bounds how many `/portfolio` runs execute at once process-wide, independent of and in addition to `/ask`'s Chroma write lock.
 
 ## Storage
 
