@@ -18,6 +18,7 @@ prompt text:
 from unittest.mock import Mock
 
 import pytest
+from langchain_core.messages import AIMessage
 
 import chain
 import config
@@ -117,13 +118,10 @@ def test_two_teams_no_external_content_but_real_head_to_head_does_not_fall_back(
 
     captured = {}
 
-    class FakeResponse:
-        content = "Team 14469 is more likely to win."
-
     class FakeLLM:
         def invoke(self, messages):
             captured["messages"] = messages
-            return FakeResponse()
+            return AIMessage(content="Team 14469 is more likely to win.")
 
     monkeypatch.setattr(chain, "get_llm_with_context", lambda: FakeLLM())
 
@@ -215,13 +213,11 @@ def test_fused_path_calls_llm_with_extended_prompt_and_appends_footer(monkeypatc
 
     captured = {}
 
-    class FakeResponse:
-        content = "Team 14469 likely wins based on OPR."
-
     class FakeLLM:
         def invoke(self, messages):
             captured["messages"] = messages
-            return FakeResponse()
+            # Gemini 3 shape: content is a list of blocks, not a str.
+            return AIMessage(content=[{"type": "text", "text": "Team 14469 likely wins based on OPR."}])
 
     monkeypatch.setattr(chain, "get_llm_with_context", lambda: FakeLLM())
 

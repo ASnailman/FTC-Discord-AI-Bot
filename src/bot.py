@@ -148,7 +148,7 @@ def _chunk_message(text: str, limit: int = None) -> list[str]:
 
 @bot.tree.command(name="ask", description="Ask the FTC AI Bot a question")
 @app_commands.describe(
-    season="FTC Season (OPTIONAL), Defaults to 2025",
+    season="FTC Season (OPTIONAL), Defaults to 2026",
     region="Region (OPTIONAL), Defaults to 'All Regions'",
     question="What do you want to know about FTC teams?",
 )
@@ -163,7 +163,7 @@ async def ask(interaction: discord.Interaction,
               region: str = None):
     await interaction.response.defer()
 
-    season_val = season.value if season is not None else 2025
+    season_val = season.value if season is not None else 2026
     region_str = region if region is not None else "All"
 
     region_dict = await asyncio.to_thread(get_cached_teams_by_region, region_str)

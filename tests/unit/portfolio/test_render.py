@@ -20,6 +20,7 @@ from portfolio.render import PortfolioImage, RenderSecurityError, render_html, r
 from portfolio.schema import (
     Banner,
     Card,
+    CardItem,
     Columns,
     FigureGrid,
     PortfolioDoc,
@@ -99,7 +100,7 @@ def test_columns_and_stat_row_payload_is_neutralized(payload):
             PortfolioPage(
                 title="T",
                 blocks=[
-                    Columns(cards=[Card(heading=payload, bullets=[payload])]),
+                    Columns(cards=[CardItem(heading=payload, bullets=[payload])]),
                     StatRow(stats=[Stat(label=payload[:60], value=payload[:60])]),
                 ],
             )
@@ -211,7 +212,7 @@ def test_markdown_output_covers_every_block_type():
                 blocks=[
                     StatRow(stats=[Stat(label="Sponsors", value="4")]),
                     Card(heading="Goals", body="Grow the team.", bullets=["Recruit 2 members", "Raise $5000"]),
-                    Columns(cards=[Card(heading="Design", bullets=["Iterate in CAD"])]),
+                    Columns(cards=[CardItem(heading="Design", bullets=["Iterate in CAD"])]),
                     FigureGrid(images=[0], captions=["Intake mechanism"]),
                     RubricTable(rows=[RubricRow(category="Motivate", goal="Recruit", result="Recruited 2", page="2")]),
                 ],

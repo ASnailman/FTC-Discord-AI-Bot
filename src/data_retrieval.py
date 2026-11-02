@@ -13,7 +13,7 @@ DEFAULT_REGION = 'All'
 
 def fetch_team_data(team_number: int, season: int = None, region: str = None, event_code: str = None):
     # This query requests EVERY field defined in the schema for Team, Awards, QuickStats, Events, and Matches.
-    # It explicitly expands all Fragments for seasons 2019-2025.
+    # It explicitly expands all Fragments for seasons 2019-2026.
     if season is None:
         season = CURRENT_FTC_SEASON
     if region is None:
@@ -80,6 +80,7 @@ def fetch_team_data(team_number: int, season: int = None, region: str = None, ev
             timezone
           }
           stats {
+            ... on TeamEventStats2026 { ...Stats2026 }
             ... on TeamEventStats2025 { ...Stats2025 }
             ... on TeamEventStats2024 { ...Stats2024 }
             ... on TeamEventStats2023 { ...Stats2023 }
@@ -117,6 +118,10 @@ def fetch_team_data(team_number: int, season: int = None, region: str = None, ev
             hasBeenPlayed
             scores {
               # --- TRADITIONAL SEASONS (Red/Blue Objects) ---
+              ... on MatchScores2026 {
+                red { ...Score2026 }
+                blue { ...Score2026 }
+              }
               ... on MatchScores2025 {
                 red { ...Score2025 }
                 blue { ...Score2025 }
@@ -161,6 +166,38 @@ def fetch_team_data(team_number: int, season: int = None, region: str = None, ev
     }
 
     # --- FRAGMENTS ---
+
+    # 2026: BIOBUZZ
+    fragment Stats2026 on TeamEventStats2026 {
+      rank wins losses ties rp qualMatchesPlayed
+      opr { totalPoints autoPoints dcPoints totalPointsNp }
+      tot {
+        autoLeavePoints autoLeavePointsIndividual
+        autoParkPoints autoParkPointsIndividual
+        autoHivePoints
+        dcHivePoints dcFlowerPoints dcGardenPoints
+        dcParkPoints dcParkPointsIndividual
+        tips swarmRp pollinator1Rp pollinator2Rp
+        autoPoints dcPoints
+        majorsCommittedPoints minorsCommittedPoints penaltyPointsCommitted
+        majorsByOppPoints minorsByOppPoints penaltyPointsByOpp
+        totalPointsNp totalPoints
+      }
+    }
+    fragment Score2026 on MatchScores2026Alliance {
+      totalPoints totalPointsNp autoPoints dcPoints
+      autoLeavePoints autoLeave1 autoLeave2
+      autoParkPoints autoParkPoints1 autoParkPoints2
+      autoHivePoints autoHiveTips
+      dcHivePoints dcHiveTips dcHivePollenNectar
+      dcFlowerPoints redAllianceFlowerState blueAllianceFlowerState
+      scoringFlowerState audienceFlowerState
+      dcGardenPoints dcGardenPollenNectar
+      dcParkPoints dcParkPoints1 dcParkPoints2
+      tips swarmRp pollinator1Rp pollinator2Rp
+      minorsCommitted majorsCommitted penaltyPointsCommitted
+      minorsByOpp majorsByOpp penaltyPointsByOpp
+    }
 
     # 2025: INTO THE DEEP
     fragment Stats2025 on TeamEventStats2025 {

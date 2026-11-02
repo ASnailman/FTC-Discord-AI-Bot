@@ -125,4 +125,5 @@ def _synthesize(question, team_nums, season, region, facts_text, context_text, f
     )
     messages = prompt.invoke({"input": question})
     response = llm.invoke(messages)
-    return response.content + render_sources_footer(fused.sources_used)
+    # Gemini 3 models return content as a list of blocks; .text joins the text parts into a str.
+    return str(response.text) + render_sources_footer(fused.sources_used)

@@ -46,8 +46,9 @@ class _RecordingStructuredLLM:
 
 
 class _FakeLLM:
-    def __init__(self, sink, brief_value=None, page_value_fn=None):
+    def __init__(self, sink, brief_value=None, page_value_fn=None, method_calls=None):
         self.sink = sink
+        self.method_calls = method_calls if method_calls is not None else []
         self.brief_value = brief_value or PortfolioBrief(
             subtitle="Test Subtitle",
             pages=[PlannedPage(title="Motivate", category="Motivate", focus="cover recruitment")],
@@ -56,7 +57,8 @@ class _FakeLLM:
             lambda text: PortfolioPage(title="Motivate", page_label="PG. 1", blocks=[Banner(text="Hello")])
         )
 
-    def with_structured_output(self, schema):
+    def with_structured_output(self, schema, **kwargs):
+        self.method_calls.append((schema, kwargs.get("method")))
         return _RecordingStructuredLLM(schema, self.sink, self.brief_value, self.page_value_fn)
 
 
@@ -65,6 +67,24 @@ def _install_fake_llm(monkeypatch, **kwargs):
     fake = _FakeLLM(sink, **kwargs)
     monkeypatch.setattr(compose_mod, "get_portfolio_llm", lambda: fake)
     return sink
+
+
+def test_page_generation_uses_function_calling_not_the_default_json_schema_method(monkeypatch):
+    """Regression lock: `with_structured_output`'s default method
+    ("json_schema", Gemini's newer raw-schema passthrough) returned a real
+    `400 INVALID_ARGUMENT` against PortfolioPage's nested schema in
+    practice, even after removing the discriminated union that was the
+    first suspect -- see docs/adr/0004. `method="function_calling"` (the
+    older, more broadly-supported mechanism) is the actual fix; this test
+    fails loudly if a future refactor drops that argument."""
+    sink: list[str] = []
+    fake = _FakeLLM(sink)
+    monkeypatch.setattr(compose_mod, "get_portfolio_llm", lambda: fake)
+
+    compose(team_number=1, season_label="S")
+
+    page_calls = [method for schema, method in fake.method_calls if schema is PortfolioPage]
+    assert page_calls == ["function_calling"]
 
 
 def test_compose_returns_valid_portfolio_doc(monkeypatch):

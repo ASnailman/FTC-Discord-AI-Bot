@@ -5,6 +5,7 @@ need this mapping; previously it was hardcoded independently in each place.
 """
 
 SEASON_NAMES = {
+    2026: "Biobuzz",
     2025: "Decode",
     2024: "Into the Deep",
     2023: "Centerstage",
@@ -15,7 +16,7 @@ SEASON_NAMES = {
     2018: "Rover Ruckus",
 }
 
-CURRENT_SEASON = 2025
+CURRENT_SEASON = 2026
 
 
 def season_name(season: int) -> str:

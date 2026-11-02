@@ -37,7 +37,7 @@ import html
 import re
 from dataclasses import dataclass
 
-from .schema import Banner, Card, Columns, FigureGrid, PortfolioDoc, RubricTable, StatRow
+from .schema import Block, CardItem, PortfolioDoc
 from .theme import build_css, watermark_svg
 
 _CODE_RE = re.compile(r"`([^`]+)`")
@@ -80,11 +80,11 @@ def _resolve_image(index: int, images: list[PortfolioImage]) -> "PortfolioImage 
     return None
 
 
-def _render_banner(block: Banner) -> str:
+def _render_banner(block: Block) -> str:
     return f'<div class="banner">{_inline(block.text)}</div>'
 
 
-def _render_stat_row(block: StatRow) -> str:
+def _render_stat_row(block: Block) -> str:
     stats = "".join(
         f'<div class="stat"><div class="value">{_esc(s.value)}</div>'
         f'<div class="label">{_esc(s.label)}</div></div>'
@@ -93,23 +93,25 @@ def _render_stat_row(block: StatRow) -> str:
     return f'<div class="stat-row">{stats}</div>'
 
 
-def _render_card_inner(card: Card) -> str:
+def _render_card_inner(card: "Block | CardItem") -> str:
+    """Accepts either a `Block` of `kind="card"` or a nested `CardItem` --
+    both expose the same `heading`/`body`/`bullets` fields."""
     bullets = "".join(f"<li>{_inline(b)}</li>" for b in card.bullets)
     bullets_html = f"<ul>{bullets}</ul>" if bullets else ""
     body_html = f"<p>{_inline(card.body)}</p>" if card.body else ""
     return f"<h3>{_inline(card.heading)}</h3>{body_html}{bullets_html}"
 
 
-def _render_card(block: Card) -> str:
+def _render_card(block: Block) -> str:
     return f'<div class="card">{_render_card_inner(block)}</div>'
 
 
-def _render_columns(block: Columns) -> str:
+def _render_columns(block: Block) -> str:
     cards = "".join(f'<div class="card">{_render_card_inner(c)}</div>' for c in block.cards)
     return f'<div class="columns">{cards}</div>'
 
 
-def _render_figure_grid(block: FigureGrid, images: list[PortfolioImage]) -> str:
+def _render_figure_grid(block: Block, images: list[PortfolioImage]) -> str:
     figures = []
     for i, idx in enumerate(block.images):
         img = _resolve_image(idx, images)
@@ -124,7 +126,7 @@ def _render_figure_grid(block: FigureGrid, images: list[PortfolioImage]) -> str:
     return f'<div class="figure-grid">{"".join(figures)}</div>'
 
 
-def _render_rubric_table(block: RubricTable) -> str:
+def _render_rubric_table(block: Block) -> str:
     rows = []
     for row in block.rows:
         rows.append(
@@ -220,27 +222,32 @@ def _md_text(text: str) -> str:
     return _TAG_RE.sub("", text or "")
 
 
-def _render_block_md(block) -> list[str]:
+def _card_item_lines_md(heading: str, body: str, bullets: list[str]) -> list[str]:
+    lines = [f"#### {_md_text(heading)}"]
+    if body:
+        lines.append(_md_text(body))
+    for b in bullets:
+        lines.append(f"- {_md_text(b)}")
+    return lines
+
+
+def _render_block_md(block: Block) -> list[str]:
     lines: list[str] = []
-    if isinstance(block, Banner):
+    if block.kind == "banner":
         lines.append(f"> **{_md_text(block.text)}**")
-    elif isinstance(block, StatRow):
+    elif block.kind == "stat_row":
         lines.append(" | ".join(f"**{_md_text(s.value)}** {_md_text(s.label)}" for s in block.stats))
-    elif isinstance(block, Card):
-        lines.append(f"#### {_md_text(block.heading)}")
-        if block.body:
-            lines.append(_md_text(block.body))
-        for b in block.bullets:
-            lines.append(f"- {_md_text(b)}")
-    elif isinstance(block, Columns):
+    elif block.kind == "card":
+        lines.extend(_card_item_lines_md(block.heading, block.body, block.bullets))
+    elif block.kind == "columns":
         for card in block.cards:
-            lines.extend(_render_block_md(card))
+            lines.extend(_card_item_lines_md(card.heading, card.body, card.bullets))
             lines.append("")
-    elif isinstance(block, FigureGrid):
+    elif block.kind == "figure_grid":
         for i, idx in enumerate(block.images):
             caption = block.captions[i] if i < len(block.captions) else ""
             lines.append(f"- _Image {idx}_ -- {_md_text(caption)}" if caption else f"- _Image {idx}_")
-    elif isinstance(block, RubricTable):
+    elif block.kind == "rubric_table":
         lines.append("| Category | Goal | Result | Page |")
         lines.append("|---|---|---|---|")
         for row in block.rows:
